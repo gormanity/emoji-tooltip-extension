@@ -1,0 +1,213 @@
+// Emoji Revealer - Content Script
+// Detects emojis on web pages and adds tooltips with their names
+
+import emojiData from "./emoji-data.json";
+
+// Emoji regex that matches most common emojis including:
+// - Basic emoticons (U+1F600-U+1F64F)
+// - Misc symbols and pictographs (U+1F300-U+1F5FF)
+// - Transport and map symbols (U+1F680-U+1F6FF)
+// - Supplemental symbols (U+1F900-U+1F9FF)
+// - Symbols and arrows (U+2600-U+26FF, U+2700-U+27BF)
+// - Regional indicator symbols for flags (U+1F1E0-U+1F1FF)
+// - Variation selectors and ZWJ sequences
+const EMOJI_REGEX =
+  /(?:\p{Emoji_Presentation}|\p{Emoji}\uFE0F)(?:\u200D(?:\p{Emoji_Presentation}|\p{Emoji}\uFE0F))*/gu;
+
+// Data attribute to mark processed spans
+const PROCESSED_ATTR = "data-emoji-revealer";
+
+// Elements to skip when processing
+const SKIP_TAGS = new Set([
+  "SCRIPT",
+  "STYLE",
+  "TEXTAREA",
+  "INPUT",
+  "NOSCRIPT",
+  "IFRAME",
+  "OBJECT",
+  "EMBED",
+  "SVG",
+  "CANVAS",
+  "CODE",
+  "PRE",
+]);
+
+// Cast emoji data to a typed record
+const emojiNames = emojiData as Record<string, string>;
+
+/**
+ * Check if an element should be skipped during processing
+ */
+function shouldSkipElement(element: Element): boolean {
+  if (SKIP_TAGS.has(element.tagName)) {
+    return true;
+  }
+
+  // Skip contenteditable elements
+  if (element.hasAttribute("contenteditable")) {
+    return true;
+  }
+
+  // Skip elements we've already processed
+  if (element.hasAttribute(PROCESSED_ATTR)) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Get the emoji name from our database
+ */
+function getEmojiName(emoji: string): string | null {
+  // Try exact match first
+  if (emojiNames[emoji]) {
+    return emojiNames[emoji];
+  }
+
+  // Try without variation selector (FE0F)
+  const withoutVS = emoji.replace(/\uFE0F/g, "");
+  if (emojiNames[withoutVS]) {
+    return emojiNames[withoutVS];
+  }
+
+  return null;
+}
+
+/**
+ * Process a text node and wrap emojis in spans with tooltips
+ */
+function processTextNode(textNode: Text): void {
+  const text = textNode.textContent;
+  if (!text) return;
+
+  // Reset regex state
+  EMOJI_REGEX.lastIndex = 0;
+
+  const matches: Array<{ emoji: string; index: number }> = [];
+  let match: RegExpExecArray | null;
+
+  while ((match = EMOJI_REGEX.exec(text)) !== null) {
+    const name = getEmojiName(match[0]);
+    if (name) {
+      matches.push({ emoji: match[0], index: match.index });
+    }
+  }
+
+  if (matches.length === 0) return;
+
+  // Build replacement content
+  const fragment = document.createDocumentFragment();
+  let lastIndex = 0;
+
+  for (const { emoji, index } of matches) {
+    // Add text before the emoji
+    if (index > lastIndex) {
+      fragment.appendChild(
+        document.createTextNode(text.slice(lastIndex, index))
+      );
+    }
+
+    // Create span for emoji
+    const span = document.createElement("span");
+    span.setAttribute(PROCESSED_ATTR, "true");
+    span.setAttribute("title", getEmojiName(emoji)!);
+    span.textContent = emoji;
+    fragment.appendChild(span);
+
+    lastIndex = index + emoji.length;
+  }
+
+  // Add remaining text after last emoji
+  if (lastIndex < text.length) {
+    fragment.appendChild(document.createTextNode(text.slice(lastIndex)));
+  }
+
+  // Replace the text node with our fragment
+  textNode.parentNode?.replaceChild(fragment, textNode);
+}
+
+/**
+ * Walk the DOM tree and process all text nodes
+ */
+function processNode(node: Node): void {
+  if (node.nodeType === Node.ELEMENT_NODE) {
+    const element = node as Element;
+    if (shouldSkipElement(element)) {
+      return;
+    }
+  }
+
+  if (node.nodeType === Node.TEXT_NODE) {
+    processTextNode(node as Text);
+    return;
+  }
+
+  // Process children (make a copy of childNodes since we may modify the DOM)
+  const children = Array.from(node.childNodes);
+  for (const child of children) {
+    processNode(child);
+  }
+}
+
+/**
+ * Process the entire document
+ */
+function processDocument(): void {
+  processNode(document.body);
+}
+
+/**
+ * Set up MutationObserver to handle dynamically added content
+ */
+function setupObserver(): void {
+  const observer = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      // Handle added nodes
+      for (const node of mutation.addedNodes) {
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          const element = node as Element;
+          if (!shouldSkipElement(element)) {
+            processNode(element);
+          }
+        } else if (node.nodeType === Node.TEXT_NODE) {
+          processTextNode(node as Text);
+        }
+      }
+
+      // Handle character data changes (text content changes)
+      if (
+        mutation.type === "characterData" &&
+        mutation.target.nodeType === Node.TEXT_NODE
+      ) {
+        // Check if parent has our attribute (avoid re-processing our own spans)
+        const parent = mutation.target.parentElement;
+        if (parent && !parent.hasAttribute(PROCESSED_ATTR)) {
+          processTextNode(mutation.target as Text);
+        }
+      }
+    }
+  });
+
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+    characterData: true,
+  });
+}
+
+// Initialize when DOM is ready
+function init(): void {
+  if (document.body) {
+    processDocument();
+    setupObserver();
+  } else {
+    document.addEventListener("DOMContentLoaded", () => {
+      processDocument();
+      setupObserver();
+    });
+  }
+}
+
+init();
