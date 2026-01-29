@@ -7,6 +7,7 @@ import sharp from "sharp";
 
 const SRC_DIR = "src";
 const DIST_DIR = "dist";
+const STORE_DIR = "store";
 const ICONS_DIR = path.join(SRC_DIR, "icons");
 const ICON_SIZES = [16, 32, 48, 128];
 const PROMO_SIZES = [
@@ -76,7 +77,7 @@ async function generateIcons() {
 }
 
 async function generatePromoImages() {
-  const promoDir = path.join(ICONS_DIR, "promo");
+  const promoDir = path.join(STORE_DIR, "promo");
   const promoDistDir = path.join(DIST_DIR, "store-assets");
 
   try {
