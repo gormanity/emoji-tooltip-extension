@@ -63,6 +63,15 @@ const SKIP_TAGS = new Set([
 // Cast emoji data to a typed record
 const emojiNames = emojiData as Record<string, string>;
 
+// Build normalized lookup (strip FE0F) for emojis that may appear without variation selectors
+const normalizedEmojiNames: Record<string, string> = {};
+for (const [emoji, name] of Object.entries(emojiNames)) {
+  const normalized = emoji.replace(/\uFE0F/g, "");
+  if (!normalizedEmojiNames[normalized]) {
+    normalizedEmojiNames[normalized] = name;
+  }
+}
+
 // Data attribute to store the emoji character for reformatting
 const EMOJI_CHAR_ATTR = "data-emoji-char";
 
@@ -216,10 +225,10 @@ function getEmojiName(emoji: string): string | null {
     return emojiNames[emoji];
   }
 
-  // Try without variation selector (FE0F)
-  const withoutVS = emoji.replace(/\uFE0F/g, "");
-  if (emojiNames[withoutVS]) {
-    return emojiNames[withoutVS];
+  // Try normalized lookup (handles FE0F anywhere in the sequence)
+  const normalized = emoji.replace(/\uFE0F/g, "");
+  if (normalizedEmojiNames[normalized]) {
+    return normalizedEmojiNames[normalized];
   }
 
   return null;
