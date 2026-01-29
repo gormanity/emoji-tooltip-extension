@@ -205,20 +205,46 @@ function processDocument(): void {
 
 /**
  * Set up MutationObserver to handle dynamically added content
+ * Uses debouncing to batch process mutations and avoid performance issues
  */
 function setupObserver(): void {
+  const DEBOUNCE_MS = 100;
+  let pendingNodes: Set<Node> = new Set();
+  let timeoutId: number | null = null;
+
+  function processPendingNodes(): void {
+    const nodes = pendingNodes;
+    pendingNodes = new Set();
+    timeoutId = null;
+
+    for (const node of nodes) {
+      // Check if node is still in the document
+      if (!document.contains(node)) continue;
+
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        const element = node as Element;
+        if (!shouldSkipElement(element)) {
+          processNode(element);
+        }
+      } else if (node.nodeType === Node.TEXT_NODE) {
+        const parent = node.parentElement;
+        if (parent && !parent.hasAttribute(PROCESSED_ATTR)) {
+          processTextNode(node as Text);
+        }
+      }
+    }
+  }
+
+  function scheduleProcessing(): void {
+    if (timeoutId !== null) return;
+    timeoutId = window.setTimeout(processPendingNodes, DEBOUNCE_MS);
+  }
+
   const observer = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
       // Handle added nodes
       for (const node of mutation.addedNodes) {
-        if (node.nodeType === Node.ELEMENT_NODE) {
-          const element = node as Element;
-          if (!shouldSkipElement(element)) {
-            processNode(element);
-          }
-        } else if (node.nodeType === Node.TEXT_NODE) {
-          processTextNode(node as Text);
-        }
+        pendingNodes.add(node);
       }
 
       // Handle character data changes (text content changes)
@@ -226,12 +252,12 @@ function setupObserver(): void {
         mutation.type === "characterData" &&
         mutation.target.nodeType === Node.TEXT_NODE
       ) {
-        // Check if parent has our attribute (avoid re-processing our own spans)
-        const parent = mutation.target.parentElement;
-        if (parent && !parent.hasAttribute(PROCESSED_ATTR)) {
-          processTextNode(mutation.target as Text);
-        }
+        pendingNodes.add(mutation.target);
       }
+    }
+
+    if (pendingNodes.size > 0) {
+      scheduleProcessing();
     }
   });
 
