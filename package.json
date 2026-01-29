@@ -6,7 +6,8 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "watch": "node scripts/build.mjs --watch",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "generate-emoji-data": "node scripts/generate-emoji-data.mjs"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.280",
