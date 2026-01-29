@@ -1,14 +1,14 @@
 {
   "manifest_version": 3,
   "name": "Emoji Revealer",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Displays emoji names on hover, making it easy to understand what any emoji means.",
   "browser_specific_settings": {
     "gecko": {
       "id": "emoji-revealer@gormanity",
-      "strict_min_version": "109.0",
+      "strict_min_version": "142.0",
       "data_collection_permissions": {
-        "required": false
+        "required": ["none"]
       }
     }
   },
