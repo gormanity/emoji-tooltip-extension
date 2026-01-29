@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 560">
+  <!-- Background -->
+  <rect width="1400" height="560" fill="#FFFBEB"/>
+
+  <!-- Decorative emojis (faded, background) -->
+  <text x="50" y="100" font-size="60" opacity="0.12">🎉</text>
+  <text x="1280" y="120" font-size="70" opacity="0.12">🚀</text>
+  <text x="100" y="500" font-size="55" opacity="0.12">✨</text>
+  <text x="1250" y="520" font-size="65" opacity="0.12">💡</text>
+
+  <!-- Main icon -->
+  <g transform="translate(200, 120) scale(2.5)">
+    <circle cx="64" cy="64" r="60" fill="#FFD93D"/>
+    <circle cx="64" cy="64" r="60" fill="none" stroke="#E6B800" stroke-width="4"/>
+    <ellipse cx="44" cy="52" rx="8" ry="10" fill="#333"/>
+    <ellipse cx="84" cy="52" rx="8" ry="10" fill="#333"/>
+    <path d="M 32 72 Q 64 100 96 72" fill="none" stroke="#333" stroke-width="6" stroke-linecap="round"/>
+    <circle cx="100" cy="100" r="24" fill="#4A90D9"/>
+    <circle cx="100" cy="100" r="24" fill="none" stroke="#3A7BC8" stroke-width="2"/>
+    <text x="100" y="108" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="white" text-anchor="middle">i</text>
+  </g>
+
+  <!-- Text content -->
+  <text x="620" y="250" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="72" font-weight="700" fill="#1a1a1a">Emoji Revealer</text>
+  <text x="620" y="330" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="36" fill="#666">Hover over any emoji to see its name</text>
+</svg>
