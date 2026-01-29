@@ -9,7 +9,8 @@ Features
 
 - Automatically detects emojis on any webpage
 - Shows official Unicode names in native browser tooltips
-- Supports all 3,700+ Unicode 15.1 emojis (faces, flags, skin tones, ZWJ sequences)
+- Supports all 3,700+ Unicode 15.1 emojis (faces, flags, skin tones, ZWJ
+  sequences)
 - Customizable tooltip content (emoji, name, skin tone, code points)
 - Enable/disable with one click
 - Lightweight with minimal performance impact
@@ -38,5 +39,5 @@ Display emoji names in tooltips when hovering over emojis on webpages.
 - **host_permission (all_urls)**: The content script runs on all pages to detect
   and annotate emojis with tooltips. This broad permission is necessary because
   emojis can appear on any website. The extension only reads text content to
-  find emojis and adds title attributes for tooltips—it does not collect, store,
-  or transmit any page content or user data.
+  find emojis and adds title attributes for tooltips. It does not collect,
+  store, or transmit any page content or user data.
