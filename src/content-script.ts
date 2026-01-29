@@ -31,6 +31,11 @@ const SKIP_TAGS = new Set([
   "CANVAS",
   "CODE",
   "PRE",
+  "IMG", // Skip images (some sites use img for emoji)
+  "VIDEO",
+  "AUDIO",
+  "SELECT",
+  "OPTION",
 ]);
 
 // Cast emoji data to a typed record
@@ -46,7 +51,10 @@ function shouldSkipElement(element: Element): boolean {
 
   // Skip contenteditable elements
   if (element.hasAttribute("contenteditable")) {
-    return true;
+    const value = element.getAttribute("contenteditable");
+    if (value !== "false") {
+      return true;
+    }
   }
 
   // Skip elements we've already processed
@@ -54,6 +62,38 @@ function shouldSkipElement(element: Element): boolean {
     return true;
   }
 
+  // Skip elements hidden from accessibility tree
+  if (element.getAttribute("aria-hidden") === "true") {
+    return true;
+  }
+
+  // Skip custom text input roles
+  const role = element.getAttribute("role");
+  if (role === "textbox" || role === "searchbox") {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Check if any ancestor is editable or should be skipped
+ */
+function hasEditableAncestor(node: Node): boolean {
+  let current = node.parentElement;
+  while (current && current !== document.body) {
+    if (current.hasAttribute("contenteditable")) {
+      const value = current.getAttribute("contenteditable");
+      if (value !== "false") {
+        return true;
+      }
+    }
+    const role = current.getAttribute("role");
+    if (role === "textbox" || role === "searchbox") {
+      return true;
+    }
+    current = current.parentElement;
+  }
   return false;
 }
 
@@ -81,6 +121,11 @@ function getEmojiName(emoji: string): string | null {
 function processTextNode(textNode: Text): void {
   const text = textNode.textContent;
   if (!text) return;
+
+  // Skip if inside an editable area
+  if (hasEditableAncestor(textNode)) {
+    return;
+  }
 
   // Reset regex state
   EMOJI_REGEX.lastIndex = 0;
