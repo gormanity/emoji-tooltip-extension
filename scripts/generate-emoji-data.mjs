@@ -49,6 +49,18 @@ async function fetchEmojiTest() {
 }
 
 /**
+ * Convert space-separated hex code points to an emoji string
+ * e.g., "1F600" -> "😀" or "1F469 200D 1F4BB" -> "👩‍💻"
+ */
+function codePointsToEmoji(codePointsStr) {
+  return codePointsStr
+    .trim()
+    .split(/\s+/)
+    .map((hex) => String.fromCodePoint(parseInt(hex, 16)))
+    .join("");
+}
+
+/**
  * Parse emoji-test.txt and extract emoji with names
  * Format: code_points ; status # emoji E version name
  */
@@ -62,14 +74,16 @@ function parseEmojiTest(text) {
 
     // Match: 1F600 ; fully-qualified # 😀 E1.0 grinning face
     const match = line.match(
-      /^([0-9A-F ]+)\s*;\s*(fully-qualified|component)\s*#\s*(\S+)\s+E[\d.]+\s+(.+)$/i
+      /^([0-9A-F ]+)\s*;\s*(fully-qualified|component)\s*#\s*\S+\s+E[\d.]+\s+(.+)$/i
     );
 
     if (match) {
-      const [, codePoints, status, emoji, name] = match;
+      const [, codePointsHex, status, name] = match;
 
       // Only include fully-qualified emojis (skip components like skin tones alone)
       if (status.toLowerCase() === "fully-qualified") {
+        // Construct emoji from code points (more reliable than extracting visual)
+        const emoji = codePointsToEmoji(codePointsHex);
         emojis[emoji] = name.trim();
       }
     }
