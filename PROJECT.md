@@ -30,9 +30,7 @@ cross-browser compatibility)
 
 - ✅ Support for emoji sequences (skin tone modifiers, ZWJ sequences)
 - ✅ Customizable tooltip content (emoji, name, skin tone, Unicode code points)
-- Toggle on/off via browser action icon
-- Whitelist/blacklist specific websites
-- Localization for emoji names in multiple languages
+- ✅ Toggle on/off via popup
 
 ## Technical Architecture
 

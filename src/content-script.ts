@@ -5,6 +5,7 @@ import emojiData from "./emoji-data.json";
 
 // Tooltip options interface (must match popup/popup.ts)
 interface TooltipOptions {
+  enabled: boolean;
   showEmoji: boolean;
   showName: boolean;
   showCodePoints: boolean;
@@ -12,6 +13,7 @@ interface TooltipOptions {
 }
 
 const DEFAULT_OPTIONS: TooltipOptions = {
+  enabled: true,
   showEmoji: false,
   showName: true,
   showCodePoints: false,
@@ -131,6 +133,20 @@ function updateAllTooltips(): void {
       if (name) {
         span.setAttribute("title", formatTooltip(emoji, name));
       }
+    }
+  }
+}
+
+/**
+ * Remove all emoji tooltips (unwrap spans back to text)
+ */
+function removeAllTooltips(): void {
+  const spans = document.querySelectorAll(`[${PROCESSED_ATTR}]`);
+  for (const span of spans) {
+    const text = span.textContent;
+    if (text && span.parentNode) {
+      const textNode = document.createTextNode(text);
+      span.parentNode.replaceChild(textNode, span);
     }
   }
 }
@@ -296,6 +312,7 @@ function processNode(node: Node): void {
  * Process the entire document
  */
 function processDocument(): void {
+  if (!currentOptions.enabled) return;
   processNode(document.body);
 }
 
@@ -312,6 +329,9 @@ function setupObserver(): void {
     const nodes = pendingNodes;
     pendingNodes = new Set();
     timeoutId = null;
+
+    // Skip processing if disabled
+    if (!currentOptions.enabled) return;
 
     for (const node of nodes) {
       // Check if node is still in the document
@@ -372,6 +392,19 @@ function setupStorageListener(): void {
     chrome.storage.onChanged.addListener((changes, areaName) => {
       if (areaName !== "sync") return;
 
+      // Handle enabled toggle
+      if (changes.enabled !== undefined) {
+        currentOptions.enabled = changes.enabled.newValue;
+        if (currentOptions.enabled) {
+          // Re-process document when enabled
+          processDocument();
+        } else {
+          // Remove tooltips when disabled
+          removeAllTooltips();
+        }
+        return;
+      }
+
       let optionsChanged = false;
       if (changes.showEmoji !== undefined) {
         currentOptions.showEmoji = changes.showEmoji.newValue;
@@ -390,7 +423,7 @@ function setupStorageListener(): void {
         optionsChanged = true;
       }
 
-      if (optionsChanged) {
+      if (optionsChanged && currentOptions.enabled) {
         updateAllTooltips();
       }
     });

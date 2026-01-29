@@ -1,6 +1,7 @@
 // Popup script for Emoji Revealer options
 
 interface TooltipOptions {
+  enabled: boolean;
   showEmoji: boolean;
   showName: boolean;
   showCodePoints: boolean;
@@ -8,6 +9,7 @@ interface TooltipOptions {
 }
 
 const DEFAULT_OPTIONS: TooltipOptions = {
+  enabled: true,
   showEmoji: false,
   showName: true,
   showCodePoints: false,
@@ -112,6 +114,7 @@ function showStatus(message: string): void {
  */
 function getFormOptions(): TooltipOptions {
   return {
+    enabled: (document.getElementById("enabled") as HTMLInputElement).checked,
     showEmoji: (document.getElementById("showEmoji") as HTMLInputElement)
       .checked,
     showName: (document.getElementById("showName") as HTMLInputElement).checked,
@@ -127,6 +130,8 @@ function getFormOptions(): TooltipOptions {
  * Set form values from options
  */
 function setFormOptions(options: TooltipOptions): void {
+  (document.getElementById("enabled") as HTMLInputElement).checked =
+    options.enabled;
   (document.getElementById("showEmoji") as HTMLInputElement).checked =
     options.showEmoji;
   (document.getElementById("showName") as HTMLInputElement).checked =
@@ -135,6 +140,16 @@ function setFormOptions(options: TooltipOptions): void {
     options.showCodePoints;
   (document.getElementById("showSkinTone") as HTMLInputElement).checked =
     options.showSkinTone;
+}
+
+/**
+ * Update UI to reflect enabled/disabled state
+ */
+function updateEnabledState(enabled: boolean): void {
+  const container = document.querySelector(".container");
+  if (container) {
+    container.classList.toggle("disabled", !enabled);
+  }
 }
 
 /**
@@ -155,6 +170,16 @@ async function handleOptionChange(): Promise<void> {
 }
 
 /**
+ * Handle enabled toggle change
+ */
+async function handleEnabledChange(): Promise<void> {
+  const options = getFormOptions();
+  updateEnabledState(options.enabled);
+  await saveOptions(options);
+  showStatus(options.enabled ? "Enabled" : "Disabled");
+}
+
+/**
  * Initialize popup
  */
 async function init(): Promise<void> {
@@ -162,8 +187,12 @@ async function init(): Promise<void> {
   const options = await loadOptions();
   setFormOptions(options);
   updatePreview(options);
+  updateEnabledState(options.enabled);
 
   // Add event listeners
+  document
+    .getElementById("enabled")
+    ?.addEventListener("change", handleEnabledChange);
   document
     .getElementById("showEmoji")
     ?.addEventListener("change", handleOptionChange);
