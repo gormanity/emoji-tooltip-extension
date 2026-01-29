@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emoji Revealer - Why You'll Love It</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 1280px;
+            height: 800px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .main-content {
+            background: white;
+            border-radius: 16px;
+            padding: 45px 60px;
+            max-width: 1000px;
+            width: 100%;
+            box-shadow: 0 30px 90px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            font-size: 44px;
+            color: #1a1a1a;
+            margin-bottom: 16px;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .tagline {
+            font-size: 20px;
+            color: #666;
+            margin-bottom: 36px;
+            text-align: center;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .feature-card {
+            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+            border-radius: 12px;
+            padding: 24px;
+            border: 2px solid #e2e8f0;
+            transition: transform 0.2s;
+        }
+
+        .feature-icon {
+            font-size: 40px;
+            margin-bottom: 12px;
+        }
+
+        .feature-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+
+        .feature-description {
+            font-size: 16px;
+            line-height: 1.5;
+            color: #4a5568;
+        }
+
+        .bottom-banner {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 32px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .banner-stats {
+            display: flex;
+            justify-content: center;
+            gap: 50px;
+            margin-top: 16px;
+            font-size: 15px;
+            opacity: 0.95;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="main-content">
+        <h1>Why You'll Love It 💜</h1>
+        <p class="tagline">Everything you need, nothing you don't</p>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <div class="feature-title">Instant Tooltips</div>
+                <div class="feature-description">No clicking, no searching, no leaving the page. Just hover and know!
+                </div>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🌐</div>
+                <div class="feature-title">Works Everywhere</div>
+                <div class="feature-description">Twitter, Slack, Discord, Gmail, docs — every site, every emoji.</div>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🎨</div>
+                <div class="feature-title">Fully Customizable</div>
+                <div class="feature-description">Choose what info to display — emoji, name, skin tone, or Unicode.</div>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🔒</div>
+                <div class="feature-title">Privacy First</div>
+                <div class="feature-description">Works entirely in your browser. Zero tracking, zero data collection.
+                </div>
+            </div>
+        </div>
+
+        <div class="bottom-banner">
+            Stop Guessing. Start Knowing.
+            <div class="banner-stats">
+                <div class="stat-item">✓ Open Source</div>
+                <div class="stat-item">✓ Super Lightweight</div>
+                <div class="stat-item">✓ Works Offline</div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
