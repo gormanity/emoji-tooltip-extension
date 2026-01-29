@@ -3,16 +3,17 @@
 
 import emojiData from "./emoji-data.json";
 
-// Emoji regex that matches most common emojis including:
-// - Basic emoticons (U+1F600-U+1F64F)
-// - Misc symbols and pictographs (U+1F300-U+1F5FF)
-// - Transport and map symbols (U+1F680-U+1F6FF)
-// - Supplemental symbols (U+1F900-U+1F9FF)
-// - Symbols and arrows (U+2600-U+26FF, U+2700-U+27BF)
-// - Regional indicator symbols for flags (U+1F1E0-U+1F1FF)
-// - Variation selectors and ZWJ sequences
+// Emoji regex that matches Unicode emojis including:
+// - Emoji_Presentation: emojis that render as emoji by default
+// - Extended_Pictographic: broader pictographic characters
+// - Emoji + FE0F: text symbols rendered as emoji with variation selector
+// - Emoji_Modifier: skin tone modifiers (U+1F3FB-U+1F3FF)
+// - ZWJ sequences: multiple emojis joined with U+200D
+// - Regional indicators: flag sequences (two-letter country codes)
+// - Keycap sequences: #️⃣, 0️⃣-9️⃣, *️⃣
+// - Tag sequences: subdivision flags (England, Scotland, Wales)
 const EMOJI_REGEX =
-  /(?:\p{Emoji_Presentation}|\p{Emoji}\uFE0F)(?:\u200D(?:\p{Emoji_Presentation}|\p{Emoji}\uFE0F))*/gu;
+  /(?:(?:\p{Regional_Indicator}){2}|[#*0-9]\uFE0F?\u20E3|(?:\p{Extended_Pictographic}|\p{Emoji_Presentation}|\p{Emoji})(?:\uFE0F)?(?:\p{Emoji_Modifier})?(?:[\u{E0020}-\u{E007F}]+)?(?:\u200D(?:\p{Extended_Pictographic}|\p{Emoji_Presentation}|\p{Emoji})(?:\uFE0F)?(?:\p{Emoji_Modifier})?(?:[\u{E0020}-\u{E007F}]+)?)*)/gu;
 
 // Data attribute to mark processed spans
 const PROCESSED_ATTR = "data-emoji-revealer";
