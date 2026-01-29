@@ -4,16 +4,20 @@ interface TooltipOptions {
   showEmoji: boolean;
   showName: boolean;
   showCodePoints: boolean;
+  showSkinTone: boolean;
 }
 
 const DEFAULT_OPTIONS: TooltipOptions = {
   showEmoji: false,
   showName: true,
   showCodePoints: false,
+  showSkinTone: true,
 };
 
-const EXAMPLE_EMOJI = "\u{1F600}"; // 😀
-const EXAMPLE_NAME = "grinning face";
+// Example with skin tone for preview
+const EXAMPLE_EMOJI = "\u{1F44B}\u{1F3FD}"; // 👋🏽
+const EXAMPLE_NAME = "waving hand: medium skin tone";
+
 
 /**
  * Get code points string for an emoji
@@ -22,6 +26,13 @@ function getCodePoints(emoji: string): string {
   return [...emoji]
     .map((char) => "U+" + char.codePointAt(0)!.toString(16).toUpperCase())
     .join(" ");
+}
+
+/**
+ * Strip skin tone suffix from emoji name
+ */
+function stripSkinTone(name: string): string {
+  return name.replace(/: (light|medium-light|medium|medium-dark|dark) skin tone$/, "");
 }
 
 /**
@@ -39,7 +50,9 @@ function formatTooltip(
   }
 
   if (options.showName) {
-    parts.push(name);
+    // Strip skin tone from name if option is disabled
+    const displayName = options.showSkinTone ? name : stripSkinTone(name);
+    parts.push(displayName);
   }
 
   if (options.showCodePoints) {
@@ -105,6 +118,8 @@ function getFormOptions(): TooltipOptions {
     showCodePoints: (
       document.getElementById("showCodePoints") as HTMLInputElement
     ).checked,
+    showSkinTone: (document.getElementById("showSkinTone") as HTMLInputElement)
+      .checked,
   };
 }
 
@@ -118,6 +133,8 @@ function setFormOptions(options: TooltipOptions): void {
     options.showName;
   (document.getElementById("showCodePoints") as HTMLInputElement).checked =
     options.showCodePoints;
+  (document.getElementById("showSkinTone") as HTMLInputElement).checked =
+    options.showSkinTone;
 }
 
 /**
@@ -126,8 +143,8 @@ function setFormOptions(options: TooltipOptions): void {
 async function handleOptionChange(): Promise<void> {
   const options = getFormOptions();
 
-  // Ensure at least name is shown if nothing selected
-  if (!options.showEmoji && !options.showName && !options.showCodePoints) {
+  // Ensure at least name is shown if nothing useful selected
+  if (!options.showEmoji && !options.showName && !options.showCodePoints && !options.showSkinTone) {
     options.showName = true;
     setFormOptions(options);
   }
@@ -155,6 +172,9 @@ async function init(): Promise<void> {
     ?.addEventListener("change", handleOptionChange);
   document
     .getElementById("showCodePoints")
+    ?.addEventListener("change", handleOptionChange);
+  document
+    .getElementById("showSkinTone")
     ?.addEventListener("change", handleOptionChange);
 }
 

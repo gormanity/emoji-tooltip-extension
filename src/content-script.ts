@@ -8,16 +8,19 @@ interface TooltipOptions {
   showEmoji: boolean;
   showName: boolean;
   showCodePoints: boolean;
+  showSkinTone: boolean;
 }
 
 const DEFAULT_OPTIONS: TooltipOptions = {
   showEmoji: false,
   showName: true,
   showCodePoints: false,
+  showSkinTone: true,
 };
 
 // Current options (loaded from storage)
 let currentOptions: TooltipOptions = { ...DEFAULT_OPTIONS };
+
 
 // Emoji regex that matches Unicode emojis including:
 // - Emoji_Presentation: emojis that render as emoji by default
@@ -71,6 +74,14 @@ function getCodePoints(emoji: string): string {
 }
 
 /**
+ * Strip skin tone suffix from emoji name
+ * e.g., "raised back of hand: medium-dark skin tone" -> "raised back of hand"
+ */
+function stripSkinTone(name: string): string {
+  return name.replace(/: (light|medium-light|medium|medium-dark|dark) skin tone$/, "");
+}
+
+/**
  * Format tooltip text based on current options
  */
 function formatTooltip(emoji: string, name: string): string {
@@ -81,7 +92,9 @@ function formatTooltip(emoji: string, name: string): string {
   }
 
   if (currentOptions.showName) {
-    parts.push(name);
+    // Strip skin tone from name if option is disabled
+    const displayName = currentOptions.showSkinTone ? name : stripSkinTone(name);
+    parts.push(displayName);
   }
 
   if (currentOptions.showCodePoints) {
@@ -370,6 +383,10 @@ function setupStorageListener(): void {
       }
       if (changes.showCodePoints !== undefined) {
         currentOptions.showCodePoints = changes.showCodePoints.newValue;
+        optionsChanged = true;
+      }
+      if (changes.showSkinTone !== undefined) {
+        currentOptions.showSkinTone = changes.showSkinTone.newValue;
         optionsChanged = true;
       }
 
