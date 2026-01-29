@@ -155,6 +155,25 @@ emoji handlers **Solution**:
 - Use data attributes to mark processed nodes
 - Make spans non-intrusive (display: inline, no styling)
 
+## Build System (`scripts/build.mjs`)
+
+Single Node.js script that:
+
+1. Bundles TypeScript to JS using esbuild
+2. Copies static files (manifest, HTML, CSS) to `dist/`
+3. Generates PNG icons from SVG sources using sharp
+4. Generates Chrome Web Store promo images from SVG sources
+
+Watch mode (`--watch`) rebuilds on file changes.
+
+## Release Workflow (`.github/workflows/release.yml`)
+
+Triggered by pushing a `v*` tag:
+
+1. Runs `npm ci && npm run build`
+2. Zips `dist/` (excluding store assets and sourcemaps)
+3. Creates GitHub release with the zip attached
+
 ## Resources
 
 - [Chrome Extension Documentation](https://developer.chrome.com/docs/extensions/)
