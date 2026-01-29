@@ -115,26 +115,40 @@ async function copyEmojiData() {
   }
 }
 
-async function bundleTypeScript() {
-  const entryPoints = [];
+async function findTypeScriptFiles(dir, base = "") {
+  const entries = [];
+  const files = await fs.readdir(dir, { withFileTypes: true });
 
-  // Find TypeScript entry points
-  const srcFiles = await fs.readdir(SRC_DIR);
-  for (const file of srcFiles) {
-    if (file.endsWith(".ts") && !file.endsWith(".d.ts")) {
-      entryPoints.push(path.join(SRC_DIR, file));
+  for (const file of files) {
+    const relativePath = path.join(base, file.name);
+    const fullPath = path.join(dir, file.name);
+
+    if (file.isDirectory() && !file.name.startsWith(".")) {
+      entries.push(...(await findTypeScriptFiles(fullPath, relativePath)));
+    } else if (file.name.endsWith(".ts") && !file.name.endsWith(".d.ts")) {
+      entries.push({ fullPath, relativePath });
     }
   }
 
-  if (entryPoints.length === 0) {
+  return entries;
+}
+
+async function bundleTypeScript() {
+  // Find all TypeScript entry points recursively
+  const tsFiles = await findTypeScriptFiles(SRC_DIR);
+
+  if (tsFiles.length === 0) {
     console.log("No TypeScript files found to bundle");
     return null;
   }
+
+  const entryPoints = tsFiles.map((f) => f.fullPath);
 
   const buildOptions = {
     entryPoints,
     bundle: true,
     outdir: DIST_DIR,
+    outbase: SRC_DIR,
     format: "iife",
     target: ["chrome90", "firefox90"],
     sourcemap: true,

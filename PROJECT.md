@@ -28,8 +28,9 @@ cross-browser compatibility)
 
 ### Possible Future Enhancements (Post-MVP)
 
+- ✅ Support for emoji sequences (skin tone modifiers, ZWJ sequences)
+- Customizable tooltip content (emoji, name, Unicode code points)
 - Show additional emoji metadata (categories, keywords, variations)
-- Support for emoji sequences (skin tone modifiers, ZWJ sequences)
 - Toggle on/off via browser action icon
 - Whitelist/blacklist specific websites
 - Localization for emoji names in multiple languages

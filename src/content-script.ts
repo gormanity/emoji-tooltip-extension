@@ -3,6 +3,22 @@
 
 import emojiData from "./emoji-data.json";
 
+// Tooltip options interface (must match popup/popup.ts)
+interface TooltipOptions {
+  showEmoji: boolean;
+  showName: boolean;
+  showCodePoints: boolean;
+}
+
+const DEFAULT_OPTIONS: TooltipOptions = {
+  showEmoji: false,
+  showName: true,
+  showCodePoints: false,
+};
+
+// Current options (loaded from storage)
+let currentOptions: TooltipOptions = { ...DEFAULT_OPTIONS };
+
 // Emoji regex that matches Unicode emojis including:
 // - Emoji_Presentation: emojis that render as emoji by default
 // - Extended_Pictographic: broader pictographic characters
@@ -41,6 +57,70 @@ const SKIP_TAGS = new Set([
 
 // Cast emoji data to a typed record
 const emojiNames = emojiData as Record<string, string>;
+
+// Data attribute to store the emoji character for reformatting
+const EMOJI_CHAR_ATTR = "data-emoji-char";
+
+/**
+ * Get code points string for an emoji
+ */
+function getCodePoints(emoji: string): string {
+  return [...emoji]
+    .map((char) => "U+" + char.codePointAt(0)!.toString(16).toUpperCase())
+    .join(" ");
+}
+
+/**
+ * Format tooltip text based on current options
+ */
+function formatTooltip(emoji: string, name: string): string {
+  const parts: string[] = [];
+
+  if (currentOptions.showEmoji) {
+    parts.push(emoji);
+  }
+
+  if (currentOptions.showName) {
+    parts.push(name);
+  }
+
+  if (currentOptions.showCodePoints) {
+    parts.push(`(${getCodePoints(emoji)})`);
+  }
+
+  return parts.join(" ") || name; // Fallback to name if nothing selected
+}
+
+/**
+ * Load options from storage
+ */
+function loadOptions(): Promise<TooltipOptions> {
+  return new Promise((resolve) => {
+    if (typeof chrome !== "undefined" && chrome.storage?.sync) {
+      chrome.storage.sync.get(DEFAULT_OPTIONS, (result) => {
+        resolve(result as TooltipOptions);
+      });
+    } else {
+      resolve(DEFAULT_OPTIONS);
+    }
+  });
+}
+
+/**
+ * Update all existing emoji tooltips with new formatting
+ */
+function updateAllTooltips(): void {
+  const spans = document.querySelectorAll(`[${PROCESSED_ATTR}][${EMOJI_CHAR_ATTR}]`);
+  for (const span of spans) {
+    const emoji = span.getAttribute(EMOJI_CHAR_ATTR);
+    if (emoji) {
+      const name = getEmojiName(emoji);
+      if (name) {
+        span.setAttribute("title", formatTooltip(emoji, name));
+      }
+    }
+  }
+}
 
 /**
  * Check if an element should be skipped during processing
@@ -158,7 +238,9 @@ function processTextNode(textNode: Text): void {
     // Create span for emoji
     const span = document.createElement("span");
     span.setAttribute(PROCESSED_ATTR, "true");
-    span.setAttribute("title", getEmojiName(emoji)!);
+    span.setAttribute(EMOJI_CHAR_ATTR, emoji);
+    const name = getEmojiName(emoji)!;
+    span.setAttribute("title", formatTooltip(emoji, name));
     span.textContent = emoji;
     fragment.appendChild(span);
 
@@ -269,8 +351,41 @@ function setupObserver(): void {
   });
 }
 
+/**
+ * Set up listener for storage changes to update tooltips in real-time
+ */
+function setupStorageListener(): void {
+  if (typeof chrome !== "undefined" && chrome.storage?.onChanged) {
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+      if (areaName !== "sync") return;
+
+      let optionsChanged = false;
+      if (changes.showEmoji !== undefined) {
+        currentOptions.showEmoji = changes.showEmoji.newValue;
+        optionsChanged = true;
+      }
+      if (changes.showName !== undefined) {
+        currentOptions.showName = changes.showName.newValue;
+        optionsChanged = true;
+      }
+      if (changes.showCodePoints !== undefined) {
+        currentOptions.showCodePoints = changes.showCodePoints.newValue;
+        optionsChanged = true;
+      }
+
+      if (optionsChanged) {
+        updateAllTooltips();
+      }
+    });
+  }
+}
+
 // Initialize when DOM is ready
-function init(): void {
+async function init(): Promise<void> {
+  // Load options first
+  currentOptions = await loadOptions();
+  setupStorageListener();
+
   if (document.body) {
     processDocument();
     setupObserver();

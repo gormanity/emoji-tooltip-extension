@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Emoji Revealer Options</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Emoji Revealer</h1>
+    <p class="subtitle">Customize tooltip content</p>
+
+    <div class="options">
+      <label class="option">
+        <input type="checkbox" id="showEmoji" checked>
+        <span class="checkmark"></span>
+        <span class="label-text">Show emoji</span>
+        <span class="preview" id="previewEmoji"></span>
+      </label>
+
+      <label class="option">
+        <input type="checkbox" id="showName" checked>
+        <span class="checkmark"></span>
+        <span class="label-text">Show name</span>
+      </label>
+
+      <label class="option">
+        <input type="checkbox" id="showCodePoints">
+        <span class="checkmark"></span>
+        <span class="label-text">Show Unicode</span>
+        <span class="preview" id="previewCode"></span>
+      </label>
+    </div>
+
+    <div class="preview-section">
+      <p class="preview-label">Preview:</p>
+      <div class="preview-box" id="tooltipPreview">grinning face</div>
+    </div>
+
+    <p class="status" id="status"></p>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
