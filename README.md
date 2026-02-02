@@ -20,8 +20,9 @@ understand what any emoji means.
 
 ## Installation
 
-- [Chrome Web Store](https://chromewebstore.google.com/detail/emoji-revealer/kchknelooelhhnhejbncmncfnmioncmi)
-- [Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/emoji-revealer/)
+<a href="https://chromewebstore.google.com/detail/emoji-revealer/kchknelooelhhnhejbncmncfnmioncmi"><img src="store/badges/chrome-web-store-badge.png" alt="Available in the Chrome Web Store" height="58"></a>
+<br>
+<a href="https://addons.mozilla.org/en-US/firefox/addon/emoji-revealer/"><img src="store/badges/firefox-addon-badge.svg" alt="Get the add-on for Firefox" height="58"></a>
 
 ### Manual Installation (Development)
 
