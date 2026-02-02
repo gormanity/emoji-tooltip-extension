@@ -24,7 +24,7 @@ understand what any emoji means.
 <br>
 <a href="https://addons.mozilla.org/en-US/firefox/addon/emoji-revealer/"><img src="store/badges/firefox-addon-badge.svg" alt="Get the add-on for Firefox" height="58"></a>
 
-### Manual Installation (Development)
+### Manual Installation from GitHub Releases
 
 #### Chrome
 
