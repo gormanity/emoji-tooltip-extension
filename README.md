@@ -20,7 +20,12 @@ understand what any emoji means.
 
 ## Installation
 
-### Chrome
+- [Chrome Web Store](https://chromewebstore.google.com/detail/emoji-revealer/kchknelooelhhnhejbncmncfnmioncmi)
+- [Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/emoji-revealer/)
+
+### Manual Installation (Development)
+
+#### Chrome
 
 1. Download the latest release from
    [GitHub Releases](https://github.com/gormanity/emoji-tooltip-extension/releases)
@@ -29,7 +34,7 @@ understand what any emoji means.
 4. Enable "Developer mode" in the top right
 5. Click "Load unpacked" and select the unzipped folder
 
-### Firefox
+#### Firefox
 
 1. Download the latest release from
    [GitHub Releases](https://github.com/gormanity/emoji-tooltip-extension/releases)
