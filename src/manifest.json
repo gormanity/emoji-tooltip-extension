@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Emoji Revealer",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Displays emoji names on hover, making it easy to understand what any emoji means.",
   "browser_specific_settings": {
     "gecko": {
