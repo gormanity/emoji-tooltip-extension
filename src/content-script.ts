@@ -53,7 +53,6 @@ const SKIP_TAGS = new Set([
   "CANVAS",
   "CODE",
   "PRE",
-  "IMG", // Skip images (some sites use img for emoji)
   "VIDEO",
   "AUDIO",
   "SELECT",
@@ -147,17 +146,42 @@ function updateAllTooltips(): void {
 }
 
 /**
- * Remove all emoji tooltips (unwrap spans back to text)
+ * Remove all emoji tooltips (unwrap spans back to text, or remove title from img)
  */
 function removeAllTooltips(): void {
-  const spans = document.querySelectorAll(`[${PROCESSED_ATTR}]`);
-  for (const span of spans) {
-    const text = span.textContent;
-    if (text && span.parentNode) {
-      const textNode = document.createTextNode(text);
-      span.parentNode.replaceChild(textNode, span);
+  const elements = document.querySelectorAll(`[${PROCESSED_ATTR}]`);
+  for (const el of elements) {
+    if (el.tagName === "IMG") {
+      el.removeAttribute("title");
+      el.removeAttribute(PROCESSED_ATTR);
+      el.removeAttribute(EMOJI_CHAR_ATTR);
+    } else {
+      const text = el.textContent;
+      if (text && el.parentNode) {
+        const textNode = document.createTextNode(text);
+        el.parentNode.replaceChild(textNode, el);
+      }
     }
   }
+}
+
+/**
+ * Process an <img> element that may represent an emoji (e.g., Gmail).
+ * Checks for emoji in data-emoji or alt attributes and adds a title tooltip.
+ */
+function processEmojiImg(img: HTMLImageElement): void {
+  if (img.hasAttribute(PROCESSED_ATTR)) return;
+  if (hasEditableAncestor(img)) return;
+
+  const emoji = img.getAttribute("data-emoji");
+  if (!emoji) return;
+
+  const name = getEmojiName(emoji);
+  if (!name) return;
+
+  img.setAttribute(PROCESSED_ATTR, "true");
+  img.setAttribute(EMOJI_CHAR_ATTR, emoji);
+  img.setAttribute("title", formatTooltip(emoji, name));
 }
 
 /**
@@ -295,11 +319,18 @@ function processTextNode(textNode: Text): void {
 }
 
 /**
- * Walk the DOM tree and process all text nodes
+ * Walk the DOM tree and process all text nodes and emoji img elements
  */
 function processNode(node: Node): void {
   if (node.nodeType === Node.ELEMENT_NODE) {
     const element = node as Element;
+
+    // Handle <img> elements specially — they may represent emojis (e.g., Gmail)
+    if (element.tagName === "IMG") {
+      processEmojiImg(element as HTMLImageElement);
+      return;
+    }
+
     if (shouldSkipElement(element)) {
       return;
     }
