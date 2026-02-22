@@ -9,7 +9,7 @@ const SRC_DIR = "src";
 const DIST_DIR = "dist";
 const STORE_DIR = "store";
 const ICONS_DIR = path.join(SRC_DIR, "icons");
-const ICON_SIZES = [16, 32, 48, 128];
+const ICON_SIZES = [16, 32, 48, 128, 300];
 const PROMO_SIZES = [
   { name: "promo-small", width: 440, height: 280 },
   { name: "promo-large", width: 920, height: 680 },
