@@ -4,12 +4,13 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  build-and-release:
+  build-extension:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -27,15 +28,65 @@ jobs:
       - name: Build extension
         run: npm run build
 
+      - name: Set release name
+        id: name
+        run: echo "value=${GITHUB_REF_NAME//\//-}" >> "$GITHUB_OUTPUT"
+
       - name: Create extension zip
         run: |
           cd dist
-          zip -r ../emoji-revealer-${{ github.ref_name }}.zip . \
+          zip -r ../emoji-revealer-${{ steps.name.outputs.value }}.zip . \
             -x "store-assets/*" \
             -x "*.map"
 
       - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: emoji-revealer-${{ github.ref_name }}.zip
+          files: emoji-revealer-${{ steps.name.outputs.value }}.zip
           generate_release_notes: true
+
+  build-safari:
+    runs-on: macos-latest
+    needs: build-extension
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build extension
+        run: npm run build
+
+      - name: Set release name
+        id: name
+        run: echo "value=${GITHUB_REF_NAME//\//-}" >> "$GITHUB_OUTPUT"
+
+      - name: Build Safari app
+        run: |
+          xcodebuild \
+            -project "safari/Emoji Revealer/Emoji Revealer.xcodeproj" \
+            -scheme "Emoji Revealer (macOS)" \
+            -configuration Release \
+            -derivedDataPath /tmp/emoji-revealer-build \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Zip Safari app
+        run: |
+          cd /tmp/emoji-revealer-build/Build/Products/Release
+          zip -r ${{ github.workspace }}/emoji-revealer-safari-${{ steps.name.outputs.value }}.zip "Emoji Revealer.app"
+
+      - name: Upload Safari app to release
+        if: startsWith(github.ref, 'refs/tags/')
+        run: gh release upload "$GITHUB_REF_NAME" "emoji-revealer-safari-${{ steps.name.outputs.value }}.zip" --clobber
+        env:
+          GH_TOKEN: ${{ github.token }}
