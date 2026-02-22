@@ -23,6 +23,16 @@ Usage
 
 GitHub: https://github.com/gormanity/emoji-tooltip-extension
 
+## Search Terms
+
+1. emoji names
+2. emoji tooltip
+3. emoji meanings
+4. emoji identifier
+5. unicode emoji
+6. what is this emoji
+7. emoji hover
+
 # Privacy Disclosures
 
 ## Single Purpose Description
