@@ -44,6 +44,20 @@ understand what any emoji means.
 4. Click "Load Temporary Add-on"
 5. Select any file in the unzipped folder
 
+#### Safari (macOS)
+
+Safari requires the extension to be bundled as a native app. Download the
+Safari release (`emoji-revealer-safari-*.zip`) from
+[GitHub Releases](https://github.com/gormanity/emoji-tooltip-extension/releases),
+then follow Apple's instructions for
+[enabling unsigned extensions](https://developer.apple.com/documentation/safariservices/safari-web-extensions/running-your-safari-web-extension#Enable-unsigned-extensions):
+
+1. Unzip the downloaded file and move `Emoji Revealer.app` to your Applications folder
+2. Open `Emoji Revealer.app` once to register the extension with Safari
+3. In Safari, go to **Settings → Advanced** and enable **"Show features for web developers"**
+4. Go to **Settings → Developer** and enable **"Allow unsigned extensions"**
+5. Go to **Settings → Extensions**, find Emoji Revealer, and enable it
+
 ## Usage
 
 Once installed, hover over any emoji on a webpage to see its name in a tooltip.
