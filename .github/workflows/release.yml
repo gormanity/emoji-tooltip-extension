@@ -40,6 +40,7 @@ jobs:
             -x "*.map"
 
       - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: emoji-revealer-${{ steps.name.outputs.value }}.zip
@@ -85,6 +86,7 @@ jobs:
           zip -r ${{ github.workspace }}/emoji-revealer-safari-${{ steps.name.outputs.value }}.zip "Emoji Revealer.app"
 
       - name: Upload Safari app to release
+        if: startsWith(github.ref, 'refs/tags/')
         run: gh release upload "$GITHUB_REF_NAME" "emoji-revealer-safari-${{ steps.name.outputs.value }}.zip" --clobber
         env:
           GH_TOKEN: ${{ github.token }}
