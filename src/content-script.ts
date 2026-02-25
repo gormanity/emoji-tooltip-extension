@@ -10,6 +10,7 @@ interface TooltipOptions {
   showName: boolean;
   showCodePoints: boolean;
   showSkinTone: boolean;
+  showInEditableAreas: boolean;
 }
 
 const DEFAULT_OPTIONS: TooltipOptions = {
@@ -18,6 +19,7 @@ const DEFAULT_OPTIONS: TooltipOptions = {
   showName: true,
   showCodePoints: false,
   showSkinTone: true,
+  showInEditableAreas: false,
 };
 
 // Current options (loaded from storage)
@@ -146,9 +148,11 @@ function updateAllTooltips(): void {
 }
 
 /**
- * Remove all emoji tooltips (unwrap spans back to text, or remove title from img)
+ * Remove all emoji tooltips (unwrap spans back to text, or remove title from img),
+ * and hide the floating tooltip if visible.
  */
 function removeAllTooltips(): void {
+  hideFloatingTooltip();
   const elements = document.querySelectorAll(`[${PROCESSED_ATTR}]`);
   for (const el of elements) {
     if (el.tagName === "IMG") {
@@ -356,6 +360,147 @@ function processDocument(): void {
   processNode(document.body);
 }
 
+// CSS selector for editable areas
+const EDITABLE_SELECTOR =
+  "[contenteditable]:not([contenteditable='false']), [role='textbox'], [role='searchbox']";
+
+// Floating tooltip element for use in editable areas (never modifies the DOM of the page)
+let floatingTooltip: HTMLDivElement | null = null;
+
+function getFloatingTooltip(): HTMLDivElement {
+  if (!floatingTooltip) {
+    floatingTooltip = document.createElement("div");
+    floatingTooltip.setAttribute("data-emoji-revealer-floating", "true");
+    Object.assign(floatingTooltip.style, {
+      position: "fixed",
+      zIndex: "2147483647",
+      background: "#333",
+      color: "#fff",
+      padding: "4px 8px",
+      borderRadius: "4px",
+      fontSize: "12px",
+      lineHeight: "1.4",
+      pointerEvents: "none",
+      display: "none",
+      maxWidth: "300px",
+      wordBreak: "break-word",
+    });
+    document.body.appendChild(floatingTooltip);
+  }
+  return floatingTooltip;
+}
+
+function showFloatingTooltip(text: string, x: number, y: number): void {
+  const tooltip = getFloatingTooltip();
+  tooltip.textContent = text;
+  tooltip.style.display = "block";
+  tooltip.style.left = x + 14 + "px";
+  tooltip.style.top = y + 18 + "px";
+
+  // Keep within viewport
+  const rect = tooltip.getBoundingClientRect();
+  if (rect.right > window.innerWidth) {
+    tooltip.style.left = x - rect.width - 6 + "px";
+  }
+  if (rect.bottom > window.innerHeight) {
+    tooltip.style.top = y - rect.height - 6 + "px";
+  }
+}
+
+function hideFloatingTooltip(): void {
+  if (floatingTooltip) {
+    floatingTooltip.style.display = "none";
+  }
+}
+
+/**
+ * Find an emoji in text that covers the given UTF-16 offset
+ */
+function findEmojiAtOffset(text: string, offset: number): string | null {
+  EMOJI_REGEX.lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = EMOJI_REGEX.exec(text)) !== null) {
+    const start = match.index;
+    const end = start + match[0].length;
+    if (offset >= start && offset <= end) {
+      const name = getEmojiName(match[0]);
+      if (name) return match[0];
+    }
+  }
+  return null;
+}
+
+/**
+ * Set up document-level mousemove listener for editable area tooltips.
+ * Uses caretRangeFromPoint to identify the character under the cursor without
+ * modifying the DOM.
+ */
+let pendingEditableMouseMove: number | null = null;
+
+function setupEditableTooltips(): void {
+  document.addEventListener("mousemove", (e: MouseEvent) => {
+    if (!currentOptions.enabled || !currentOptions.showInEditableAreas) {
+      hideFloatingTooltip();
+      return;
+    }
+
+    // Throttle to one check per animation frame
+    if (pendingEditableMouseMove !== null) return;
+    const clientX = e.clientX;
+    const clientY = e.clientY;
+
+    pendingEditableMouseMove = requestAnimationFrame(() => {
+      pendingEditableMouseMove = null;
+
+      const target = document.elementFromPoint(clientX, clientY);
+      if (!target || !target.closest(EDITABLE_SELECTOR)) {
+        hideFloatingTooltip();
+        return;
+      }
+
+      // Get caret position under cursor
+      let node: Node | null = null;
+      let offset = 0;
+
+      if (document.caretRangeFromPoint) {
+        const range = document.caretRangeFromPoint(clientX, clientY);
+        if (range) {
+          node = range.startContainer;
+          offset = range.startOffset;
+        }
+      } else if ((document as any).caretPositionFromPoint) {
+        const pos = (document as any).caretPositionFromPoint(clientX, clientY);
+        if (pos) {
+          node = pos.offsetNode;
+          offset = pos.offset;
+        }
+      }
+
+      if (!node || node.nodeType !== Node.TEXT_NODE) {
+        hideFloatingTooltip();
+        return;
+      }
+
+      const text = node.textContent || "";
+      const emoji = findEmojiAtOffset(text, offset);
+      if (!emoji) {
+        hideFloatingTooltip();
+        return;
+      }
+
+      const name = getEmojiName(emoji);
+      if (!name) {
+        hideFloatingTooltip();
+        return;
+      }
+
+      showFloatingTooltip(formatTooltip(emoji, name), clientX, clientY);
+    });
+  });
+
+  document.addEventListener("scroll", hideFloatingTooltip, true);
+}
+
 /**
  * Set up MutationObserver to handle dynamically added content
  * Uses debouncing to batch process mutations and avoid performance issues
@@ -462,6 +607,12 @@ function setupStorageListener(): void {
         currentOptions.showSkinTone = changes.showSkinTone.newValue;
         optionsChanged = true;
       }
+      if (changes.showInEditableAreas !== undefined) {
+        currentOptions.showInEditableAreas = changes.showInEditableAreas.newValue;
+        if (!currentOptions.showInEditableAreas) {
+          hideFloatingTooltip();
+        }
+      }
 
       if (optionsChanged && currentOptions.enabled) {
         updateAllTooltips();
@@ -479,10 +630,12 @@ async function init(): Promise<void> {
   if (document.body) {
     processDocument();
     setupObserver();
+    setupEditableTooltips();
   } else {
     document.addEventListener("DOMContentLoaded", () => {
       processDocument();
       setupObserver();
+      setupEditableTooltips();
     });
   }
 }

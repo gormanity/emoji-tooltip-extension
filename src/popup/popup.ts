@@ -6,6 +6,7 @@ interface TooltipOptions {
   showName: boolean;
   showCodePoints: boolean;
   showSkinTone: boolean;
+  showInEditableAreas: boolean;
 }
 
 const DEFAULT_OPTIONS: TooltipOptions = {
@@ -14,6 +15,7 @@ const DEFAULT_OPTIONS: TooltipOptions = {
   showName: true,
   showCodePoints: false,
   showSkinTone: true,
+  showInEditableAreas: false,
 };
 
 // Example with skin tone for preview
@@ -123,6 +125,9 @@ function getFormOptions(): TooltipOptions {
     ).checked,
     showSkinTone: (document.getElementById("showSkinTone") as HTMLInputElement)
       .checked,
+    showInEditableAreas: (
+      document.getElementById("showInEditableAreas") as HTMLInputElement
+    ).checked,
   };
 }
 
@@ -140,6 +145,8 @@ function setFormOptions(options: TooltipOptions): void {
     options.showCodePoints;
   (document.getElementById("showSkinTone") as HTMLInputElement).checked =
     options.showSkinTone;
+  (document.getElementById("showInEditableAreas") as HTMLInputElement).checked =
+    options.showInEditableAreas;
 }
 
 /**
@@ -204,6 +211,9 @@ async function init(): Promise<void> {
     ?.addEventListener("change", handleOptionChange);
   document
     .getElementById("showSkinTone")
+    ?.addEventListener("change", handleOptionChange);
+  document
+    .getElementById("showInEditableAreas")
     ?.addEventListener("change", handleOptionChange);
 }
 
