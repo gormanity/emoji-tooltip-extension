@@ -12,7 +12,7 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import * as https from "https";
 
-const EMOJI_TEST_URL = "https://unicode.org/Public/emoji/15.1/emoji-test.txt";
+const EMOJI_TEST_URL = "https://unicode.org/Public/emoji/16.0/emoji-test.txt";
 const OUTPUT_PATH = path.join("src", "emoji-data.json");
 
 /**
