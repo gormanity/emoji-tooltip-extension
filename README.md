@@ -23,6 +23,8 @@ understand what any emoji means.
 <a href="https://chromewebstore.google.com/detail/emoji-revealer/kchknelooelhhnhejbncmncfnmioncmi"><img src="store/badges/chrome-web-store-badge.png" alt="Available in the Chrome Web Store" height="58"></a>
 <br>
 <a href="https://addons.mozilla.org/en-US/firefox/addon/emoji-revealer/"><img src="store/badges/firefox-addon-badge.svg" alt="Get the add-on for Firefox" height="58"></a>
+<br>
+<a href="https://microsoftedge.microsoft.com/addons/detail/emoji-revealer/elmbkcgkmmddhfgoiheglflbodcfaada"><img src="store/badges/edge-addon-badge.png" alt="Get it from Microsoft Edge Add-ons" height="58"></a>
 
 ### Manual Installation from GitHub Releases
 
