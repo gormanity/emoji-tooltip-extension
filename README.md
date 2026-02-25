@@ -28,7 +28,8 @@ understand what any emoji means.
 
 ### Manual Installation from GitHub Releases
 
-#### Chrome
+<details>
+<summary>Chrome</summary>
 
 1. Download the latest release from
    [GitHub Releases](https://github.com/gormanity/emoji-tooltip-extension/releases)
@@ -37,7 +38,10 @@ understand what any emoji means.
 4. Enable "Developer mode" in the top right
 5. Click "Load unpacked" and select the unzipped folder
 
-#### Firefox
+</details>
+
+<details>
+<summary>Firefox</summary>
 
 1. Download the latest release from
    [GitHub Releases](https://github.com/gormanity/emoji-tooltip-extension/releases)
@@ -46,7 +50,22 @@ understand what any emoji means.
 4. Click "Load Temporary Add-on"
 5. Select any file in the unzipped folder
 
-#### Safari (macOS)
+</details>
+
+<details>
+<summary>Edge</summary>
+
+1. Download the latest release from
+   [GitHub Releases](https://github.com/gormanity/emoji-tooltip-extension/releases)
+2. Unzip the downloaded file
+3. Open `edge://extensions/`
+4. Enable "Developer mode" in the left sidebar
+5. Click "Load unpacked" and select the unzipped folder
+
+</details>
+
+<details>
+<summary>Safari (macOS)</summary>
 
 Safari requires the extension to be bundled as a native app. Download the
 Safari release (`emoji-revealer-safari-*.zip`) from
@@ -59,6 +78,8 @@ then follow Apple's instructions for
 3. In Safari, go to **Settings → Advanced** and enable **"Show features for web developers"**
 4. Go to **Settings → Developer** and enable **"Allow unsigned extensions"**
 5. Go to **Settings → Extensions**, find Emoji Revealer, and enable it
+
+</details>
 
 ## Usage
 
