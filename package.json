@@ -7,6 +7,7 @@
     "build": "node scripts/build.mjs",
     "watch": "node scripts/build.mjs --watch",
     "clean": "rm -rf dist",
+    "build:safari": "xcodebuild -project 'safari/Emoji Revealer/Emoji Revealer.xcodeproj' -scheme 'Emoji Revealer (macOS)' -configuration Release -derivedDataPath /tmp/emoji-revealer-build CODE_SIGN_IDENTITY='' CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO",
     "generate-emoji-data": "node scripts/generate-emoji-data.mjs",
     "test": "node scripts/test-emoji-regex.mjs"
   },
