@@ -1,0 +1,45 @@
+name: Update Emoji Data
+
+on:
+  schedule:
+    # Run monthly on the 1st at 00:00 UTC
+    - cron: "0 0 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-emoji-data:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Generate emoji data
+        run: node scripts/generate-emoji-data.mjs
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if git diff --quiet src/emoji-data.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create pull request
+        if: steps.changes.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: chore/update-emoji-data
+          commit-message: "chore: update emoji data to latest Unicode version"
+          title: "chore: update emoji data to latest Unicode version"
+          body: |
+            Automated update of `src/emoji-data.json` from the latest Unicode emoji-test.txt.
+
+            Please review the diff to confirm the new emojis look correct.
