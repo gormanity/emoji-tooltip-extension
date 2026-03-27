@@ -20,8 +20,24 @@ jobs:
         with:
           node-version: 24
 
+      - name: Read current version
+        id: current
+        run: |
+          version=$(jq -r '.version // "unknown"' src/emoji-data.json)
+          count=$(jq -r '.emojis // . | keys | length' src/emoji-data.json)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+
       - name: Generate emoji data
         run: node scripts/generate-emoji-data.mjs
+
+      - name: Read new version
+        id: new
+        run: |
+          version=$(jq -r '.version' src/emoji-data.json)
+          count=$(jq -r '.emojis | keys | length' src/emoji-data.json)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "count=$count" >> "$GITHUB_OUTPUT"
 
       - name: Check for changes
         id: changes
@@ -37,9 +53,14 @@ jobs:
         uses: peter-evans/create-pull-request@v8
         with:
           branch: chore/update-emoji-data
-          commit-message: "chore: update emoji data to latest Unicode version"
-          title: "chore: update emoji data to latest Unicode version"
+          commit-message: "chore: update emoji data to Emoji ${{ steps.new.outputs.version }}"
+          title: "chore: update emoji data to Emoji ${{ steps.new.outputs.version }}"
           body: |
-            Automated update of `src/emoji-data.json` from the latest Unicode emoji-test.txt.
+            Automated update of `src/emoji-data.json` from Unicode emoji-test.txt.
+
+            | | Version | Emoji count |
+            |---|---|---|
+            | Current | ${{ steps.current.outputs.version }} | ${{ steps.current.outputs.count }} |
+            | New | ${{ steps.new.outputs.version }} | ${{ steps.new.outputs.count }} |
 
             Please review the diff to confirm the new emojis look correct.
