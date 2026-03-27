@@ -196,6 +196,17 @@ async function init(): Promise<void> {
   updatePreview(options);
   updateEnabledState(options.enabled);
 
+  // Load emoji version info
+  try {
+    const res = await fetch(chrome.runtime.getURL("emoji-data.json"));
+    const data = await res.json();
+    const versionEl = document.getElementById("version");
+    if (versionEl && data.version) {
+      const count = Object.keys(data.emojis).length;
+      versionEl.textContent = `Emoji ${data.version} · ${count.toLocaleString()} emojis`;
+    }
+  } catch { /* non-critical */ }
+
   // Add event listeners
   document
     .getElementById("enabled")

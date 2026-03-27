@@ -13,7 +13,7 @@ const EMOJI_REGEX =
 
 async function main() {
   const data = await fs.readFile("src/emoji-data.json", "utf-8");
-  const emojis = Object.keys(JSON.parse(data));
+  const emojis = Object.keys(JSON.parse(data).emojis);
 
   let passed = 0;
   let failed = 0;

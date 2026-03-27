@@ -61,6 +61,30 @@ function codePointsToEmoji(codePointsStr) {
 }
 
 /**
+ * Parse the version from the emoji-test.txt header
+ * Expected format: # Version: 17.0
+ */
+function parseVersion(text) {
+  const match = text.match(/^# Version: ([\d.]+)/m);
+  if (!match) {
+    throw new Error("Could not find version in emoji-test.txt header");
+  }
+  return match[1];
+}
+
+/**
+ * Parse the expected fully-qualified count from the emoji-test.txt footer
+ * Expected format: # fully-qualified : 3944
+ */
+function parseExpectedCount(text) {
+  const match = text.match(/^# fully-qualified\s*:\s*(\d+)/m);
+  if (!match) {
+    throw new Error("Could not find fully-qualified count in emoji-test.txt");
+  }
+  return parseInt(match[1], 10);
+}
+
+/**
  * Parse emoji-test.txt and extract emoji with names
  * Format: code_points ; status # emoji E version name
  */
@@ -108,16 +132,29 @@ function sortEmojis(emojis) {
 async function main() {
   try {
     const text = await fetchEmojiTest();
-    console.log("Parsing emoji data...");
 
+    const version = parseVersion(text);
+    console.log(`Emoji version: ${version}`);
+
+    const expectedCount = parseExpectedCount(text);
+    console.log(`Expected fully-qualified count: ${expectedCount}`);
+
+    console.log("Parsing emoji data...");
     const emojis = parseEmojiTest(text);
     const sorted = sortEmojis(emojis);
     const count = Object.keys(sorted).length;
 
     console.log(`Found ${count} emojis`);
 
+    if (count !== expectedCount) {
+      throw new Error(
+        `Parsed ${count} emojis but expected ${expectedCount} fully-qualified emojis`
+      );
+    }
+
     // Write to file with nice formatting
-    const json = JSON.stringify(sorted, null, 2);
+    const output = { version, emojis: sorted };
+    const json = JSON.stringify(output, null, 2);
     await fs.writeFile(OUTPUT_PATH, json + "\n");
 
     console.log(`Written to ${OUTPUT_PATH}`);

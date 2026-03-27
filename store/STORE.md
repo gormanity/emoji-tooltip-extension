@@ -9,8 +9,7 @@ Features
 
 - Automatically detects emojis on any webpage
 - Shows official Unicode names in native browser tooltips
-- Supports all 3,700+ Unicode 16.0 emojis (faces, flags, skin tones, ZWJ
-  sequences)
+- Supports all current Unicode emojis (faces, flags, skin tones, ZWJ sequences)
 - Customizable tooltip content (emoji, name, skin tone, code points)
 - Enable/disable with one click
 - Lightweight with minimal performance impact

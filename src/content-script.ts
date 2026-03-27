@@ -1,7 +1,7 @@
 // Emoji Revealer - Content Script
 // Detects emojis on web pages and adds tooltips with their names
 
-import emojiData from "./emoji-data.json";
+import emojiDataFile from "./emoji-data.json";
 
 // Tooltip options interface (must match popup/popup.ts)
 interface TooltipOptions {
@@ -62,7 +62,7 @@ const SKIP_TAGS = new Set([
 ]);
 
 // Cast emoji data to a typed record
-const emojiNames = emojiData as Record<string, string>;
+const emojiNames = (emojiDataFile as { version: string; emojis: Record<string, string> }).emojis;
 
 // Build normalized lookup (strip FE0F) for emojis that may appear without variation selectors
 const normalizedEmojiNames: Record<string, string> = {};

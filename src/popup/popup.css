@@ -173,6 +173,13 @@ h1 {
   min-height: 16px;
 }
 
+.version {
+  font-size: 11px;
+  color: #999;
+  text-align: center;
+  margin-top: 4px;
+}
+
 /* Disabled state */
 .container.disabled .options,
 .container.disabled .preview-section {

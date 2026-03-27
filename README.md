@@ -7,8 +7,8 @@ understand what any emoji means.
 
 - Automatically detects emojis on any webpage
 - Shows emoji names in native browser tooltips on hover
-- Supports all Unicode 16.0 emojis (3781 emojis including skin tones, flags, and
-  ZWJ sequences)
+- Supports all current Unicode emojis (including skin tones, flags, and ZWJ
+  sequences)
 - Customizable tooltip content:
   - Emoji character
   - Official Unicode name
