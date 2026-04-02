@@ -168,9 +168,10 @@ Watch mode (`--watch`) rebuilds on file changes.
 
 A local-only development build can be triggered with the `--dev` flag. This build:
 
-1.  **Distinguishes the extension**: Appends ` (dev)` to the `name` in `manifest.json`.
-2.  **Enables debug logging**: Sets `process.env.NODE_ENV` to `development`, allowing conditional debug logs in the source code.
-3.  **Source Maps**: Ensures source maps are included for easier debugging (already enabled in standard build, but critical for dev).
+1.  **Output Directory**: Outputs to `dist-dev/` (to avoid overwriting production `dist/`).
+2.  **Distinguishes the extension**: Appends ` (dev)` to the `name` in `manifest.json`.
+3.  **Enables debug logging**: Sets `process.env.NODE_ENV` to `development`, allowing conditional debug logs in the source code.
+4.  **Source Maps**: Ensures source maps are included for easier debugging (already enabled in standard build, but critical for dev).
 
 To run a development build:
 - `npm run build:dev`: One-time dev build

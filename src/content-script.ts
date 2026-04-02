@@ -281,9 +281,14 @@ function processTextNode(textNode: Text): void {
   let match: RegExpExecArray | null;
 
   while ((match = EMOJI_REGEX.exec(text)) !== null) {
-    const name = getEmojiName(match[0]);
+    const emoji = match[0];
+    const name = getEmojiName(emoji);
     if (name) {
-      matches.push({ emoji: match[0], index: match.index });
+      matches.push({ emoji, index: match.index });
+    } else if (process.env.NODE_ENV === "development") {
+      console.warn(
+        `Emoji Revealer: Unrecognized emoji sequence: ${emoji} (${getCodePoints(emoji)})`
+      );
     }
   }
 

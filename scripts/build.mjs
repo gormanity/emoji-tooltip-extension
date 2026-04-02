@@ -5,8 +5,11 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import sharp from "sharp";
 
+const watchMode = process.argv.includes("--watch");
+const devMode = process.argv.includes("--dev");
+
 const SRC_DIR = "src";
-const DIST_DIR = "dist";
+const DIST_DIR = devMode ? "dist-dev" : "dist";
 const STORE_DIR = "store";
 const ICONS_DIR = path.join(SRC_DIR, "icons");
 const ICON_SIZES = [16, 32, 48, 128, 300];
@@ -15,9 +18,6 @@ const PROMO_SIZES = [
   { name: "promo-large", width: 920, height: 680 },
   { name: "promo-marquee", width: 1400, height: 560 },
 ];
-
-const watchMode = process.argv.includes("--watch");
-const devMode = process.argv.includes("--dev");
 
 async function ensureDir(dir) {
   await fs.mkdir(dir, { recursive: true });
