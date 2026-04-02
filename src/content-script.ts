@@ -623,16 +623,26 @@ function setupStorageListener(): void {
 
 // Initialize when DOM is ready
 async function init(): Promise<void> {
+  if (process.env.NODE_ENV === "development") {
+    console.log("Emoji Revealer: Initializing content script (dev mode)");
+  }
+
   // Load options first
   currentOptions = await loadOptions();
   setupStorageListener();
 
   if (document.body) {
+    if (process.env.NODE_ENV === "development") {
+      console.log("Emoji Revealer: Processing document");
+    }
     processDocument();
     setupObserver();
     setupEditableTooltips();
   } else {
     document.addEventListener("DOMContentLoaded", () => {
+      if (process.env.NODE_ENV === "development") {
+        console.log("Emoji Revealer: DOMContentLoaded, processing document");
+      }
       processDocument();
       setupObserver();
       setupEditableTooltips();

@@ -17,6 +17,7 @@ const PROMO_SIZES = [
 ];
 
 const watchMode = process.argv.includes("--watch");
+const devMode = process.argv.includes("--dev");
 
 async function ensureDir(dir) {
   await fs.mkdir(dir, { recursive: true });
@@ -30,8 +31,15 @@ async function copyStaticFiles() {
     const src = path.join(SRC_DIR, file);
     const dest = path.join(DIST_DIR, file);
     try {
-      await fs.copyFile(src, dest);
-      console.log(`Copied ${file}`);
+      if (file === "manifest.json" && devMode) {
+        const manifest = JSON.parse(await fs.readFile(src, "utf8"));
+        manifest.name += " (dev)";
+        await fs.writeFile(dest, JSON.stringify(manifest, null, 2));
+        console.log(`Copied and modified ${file} for dev mode`);
+      } else {
+        await fs.copyFile(src, dest);
+        console.log(`Copied ${file}`);
+      }
     } catch (err) {
       if (err.code !== "ENOENT") throw err;
     }
@@ -154,6 +162,11 @@ async function bundleTypeScript() {
     target: ["chrome90", "firefox90"],
     sourcemap: true,
     logLevel: "info",
+    define: {
+      "process.env.NODE_ENV": JSON.stringify(
+        devMode ? "development" : "production"
+      ),
+    },
   };
 
   if (watchMode) {
