@@ -168,7 +168,7 @@ Watch mode (`--watch`) rebuilds on file changes.
 
 A local-only development build can be triggered with the `--dev` flag. This build:
 
-1.  **Output Directory**: Outputs to `dist-dev/` (to avoid overwriting production `dist/`).
+1.  **Output Directory**: Outputs to `dist/dev/` (production builds output to `dist/prod/`). Store assets are output to `dist/store-assets/`.
 2.  **Distinguishes the extension**: Appends ` (dev)` to the `name` in `manifest.json`.
 3.  **Enables debug logging**: Sets `process.env.NODE_ENV` to `development`, allowing conditional debug logs in the source code.
 4.  **Source Maps**: Ensures source maps are included for easier debugging (already enabled in standard build, but critical for dev).
@@ -176,6 +176,12 @@ A local-only development build can be triggered with the `--dev` flag. This buil
 To run a development build:
 - `npm run build:dev`: One-time dev build
 - `npm run watch:dev`: Continuous dev build with file watching
+
+To rebuild only store assets:
+- `npm run build:assets`: Rebuilds promo images in `dist/store-assets/`
+
+To build everything:
+- `npm run build:all`: Runs production, dev, and assets builds in sequence
 
 ## Release Workflow (`.github/workflows/release.yml`)
 

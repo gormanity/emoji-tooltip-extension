@@ -7,10 +7,12 @@ import sharp from "sharp";
 
 const watchMode = process.argv.includes("--watch");
 const devMode = process.argv.includes("--dev");
+const assetsOnly = process.argv.includes("--assets");
 
 const SRC_DIR = "src";
-const DIST_DIR = devMode ? "dist-dev" : "dist";
+const DIST_DIR = devMode ? "dist/dev" : "dist/prod";
 const STORE_DIR = "store";
+const STORE_ASSETS_DIST = "dist/store-assets";
 const ICONS_DIR = path.join(SRC_DIR, "icons");
 const ICON_SIZES = [16, 32, 48, 128, 300];
 const PROMO_SIZES = [
@@ -86,7 +88,7 @@ async function generateIcons() {
 
 async function generatePromoImages() {
   const promoDir = path.join(STORE_DIR, "promo");
-  const promoDistDir = path.join(DIST_DIR, "store-assets");
+  const promoDistDir = STORE_ASSETS_DIST;
 
   try {
     await fs.access(promoDir);
@@ -181,6 +183,13 @@ async function bundleTypeScript() {
 }
 
 async function build() {
+  if (assetsOnly) {
+    console.log("Building store assets...\n");
+    await generatePromoImages();
+    console.log("\nStore assets build complete!");
+    return;
+  }
+
   console.log("Building extension...\n");
 
   await ensureDir(DIST_DIR);
@@ -188,7 +197,6 @@ async function build() {
   await Promise.all([
     copyStaticFiles(),
     generateIcons(),
-    generatePromoImages(),
     copyEmojiData(),
   ]);
 

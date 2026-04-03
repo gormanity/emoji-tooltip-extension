@@ -495,10 +495,20 @@ function setupEditableTooltips(): void {
 
       const name = getEmojiName(emoji);
       if (!name) {
+        if (process.env.NODE_ENV === "development") {
+          console.warn(
+            `Emoji Revealer: Unrecognized emoji in editable area: ${emoji} (${getCodePoints(emoji)})`
+          );
+        }
         hideFloatingTooltip();
         return;
       }
 
+      if (process.env.NODE_ENV === "development") {
+        console.log(
+          `Emoji Revealer: Showing floating tooltip for ${emoji} (${name})`
+        );
+      }
       showFloatingTooltip(formatTooltip(emoji, name), clientX, clientY);
     });
   });
