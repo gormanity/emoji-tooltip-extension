@@ -1,6 +1,6 @@
 {
   "name": "emoji-revealer",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Browser extension that displays emoji names on hover",
   "type": "module",
   "scripts": {
