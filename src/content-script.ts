@@ -177,7 +177,7 @@ function processEmojiImg(img: HTMLImageElement): void {
   if (img.hasAttribute(PROCESSED_ATTR)) return;
   if (hasEditableAncestor(img)) return;
 
-  const emoji = img.getAttribute("data-emoji");
+  const emoji = img.getAttribute("data-emoji") ?? img.getAttribute("alt");
   if (!emoji) return;
 
   const name = getEmojiName(emoji);
@@ -362,7 +362,7 @@ function processNode(node: Node): void {
  */
 function processDocument(): void {
   if (!currentOptions.enabled) return;
-  processNode(document.body);
+  processNode(document.documentElement);
 }
 
 // CSS selector for editable areas
@@ -577,7 +577,7 @@ function setupObserver(): void {
     }
   });
 
-  observer.observe(document.body, {
+  observer.observe(document.documentElement, {
     childList: true,
     subtree: true,
     characterData: true,
