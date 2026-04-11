@@ -36,7 +36,7 @@ let currentOptions: TooltipOptions = { ...DEFAULT_OPTIONS };
 // - Keycap sequences: #️⃣, 0️⃣-9️⃣, *️⃣
 // - Tag sequences: subdivision flags (England, Scotland, Wales)
 const EMOJI_REGEX =
-  /(?:(?:\p{Regional_Indicator}){2}|[#*0-9]\uFE0F?\u20E3|(?:\p{Extended_Pictographic}|\p{Emoji_Presentation}|\p{Emoji})(?:\uFE0F)?(?:\p{Emoji_Modifier})?(?:[\u{E0020}-\u{E007F}]+)?(?:\u200D(?:\p{Extended_Pictographic}|\p{Emoji_Presentation}|\p{Emoji})(?:\uFE0F)?(?:\p{Emoji_Modifier})?(?:[\u{E0020}-\u{E007F}]+)?)*)/gu;
+  /(?:(?:\p{Regional_Indicator}){2}|[#*0-9]\uFE0F?\u20E3|(?:\p{Extended_Pictographic}|\p{Emoji_Presentation})(?:\uFE0F)?(?:\p{Emoji_Modifier})?(?:[\u{E0020}-\u{E007F}]+)?(?:\u200D(?:\p{Extended_Pictographic}|\p{Emoji_Presentation})(?:\uFE0F)?(?:\p{Emoji_Modifier})?(?:[\u{E0020}-\u{E007F}]+)?)*)/gu;
 
 // Data attribute to mark processed spans
 const PROCESSED_ATTR = "data-emoji-revealer";
