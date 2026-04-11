@@ -34,9 +34,8 @@ jobs:
 
       - name: Create extension zip
         run: |
-          cd dist
-          zip -r ../emoji-revealer-${{ steps.name.outputs.value }}.zip . \
-            -x "store-assets/*" \
+          cd dist/prod
+          zip -r ../../emoji-revealer-${{ steps.name.outputs.value }}.zip . \
             -x "*.map"
 
       - name: Create GitHub Release
