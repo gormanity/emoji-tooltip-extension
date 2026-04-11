@@ -64,6 +64,9 @@ jobs:
       - name: Build extension
         run: npm run build
 
+      - name: Stage prod build for Xcode
+        run: cp -r dist/prod/. dist/
+
       - name: Set release name
         id: name
         run: echo "value=${GITHUB_REF_NAME//\//-}" >> "$GITHUB_OUTPUT"
