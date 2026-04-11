@@ -62,7 +62,7 @@ jobs:
         run: npm ci
 
       - name: Build extension
-        run: npm run build
+        run: npm run build:all
 
       - name: Stage prod build for Xcode
         run: cp -r dist/prod/. dist/
