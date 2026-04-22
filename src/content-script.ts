@@ -244,6 +244,24 @@ function hasEditableAncestor(node: Node): boolean {
   return false;
 }
 
+// Regex for characters with default emoji presentation (render as emoji without FE0F)
+const EMOJI_PRESENTATION_RE = /^\p{Emoji_Presentation}$/u;
+
+/**
+ * Check if a matched string is a single text-default character — an
+ * Extended_Pictographic code point used as plain text (no FE0F variation
+ * selector). Characters like ♪ (U+266A), ☆ (U+2606), etc. are matched by
+ * the emoji regex but are not actual emojis unless followed by FE0F.
+ */
+function isTextDefaultChar(emoji: string): boolean {
+  // Only applies to single code points without FE0F
+  const codePoints = [...emoji];
+  if (codePoints.length !== 1) return false;
+  // If it has default emoji presentation, it's a real emoji
+  if (EMOJI_PRESENTATION_RE.test(emoji)) return false;
+  return true;
+}
+
 /**
  * Get the emoji name from our database
  */
@@ -285,10 +303,15 @@ function processTextNode(textNode: Text): void {
     const name = getEmojiName(emoji);
     if (name) {
       matches.push({ emoji, index: match.index });
-    } else if (process.env.NODE_ENV === "development") {
-      console.warn(
-        `Emoji Revealer: Unrecognized emoji sequence: ${emoji} (${getCodePoints(emoji)})`
-      );
+    } else if (!isTextDefaultChar(emoji)) {
+      // Only warn for sequences that look like real emojis but aren't in our data.
+      // Text-default Extended_Pictographic chars (♪, ☆, etc.) without FE0F are
+      // expected false positives from the regex — skip them silently.
+      if (process.env.NODE_ENV === "development") {
+        console.warn(
+          `Emoji Revealer: Unrecognized emoji sequence: ${emoji} (${getCodePoints(emoji)})`
+        );
+      }
     }
   }
 
