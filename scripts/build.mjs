@@ -165,6 +165,7 @@ async function bundleTypeScript() {
     sourcemap: true,
     logLevel: "info",
     define: {
+      __DEV__: JSON.stringify(devMode),
       "process.env.NODE_ENV": JSON.stringify(
         devMode ? "development" : "production"
       ),

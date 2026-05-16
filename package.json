@@ -1,6 +1,6 @@
 {
   "name": "emoji-revealer",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Browser extension that displays emoji names on hover",
   "type": "module",
   "scripts": {
@@ -13,7 +13,7 @@
     "clean": "rm -rf dist",
     "build:safari": "xcodebuild -project 'safari/Emoji Revealer/Emoji Revealer.xcodeproj' -scheme 'Emoji Revealer (macOS)' -configuration Release -derivedDataPath /tmp/emoji-revealer-build CODE_SIGN_IDENTITY='' CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO",
     "generate-emoji-data": "node scripts/generate-emoji-data.mjs",
-    "test": "node scripts/test-emoji-regex.mjs"
+    "test": "node scripts/test-emoji-regex.mjs && node scripts/test-runtime-coordinator.mjs"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.280",

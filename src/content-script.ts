@@ -2,6 +2,7 @@
 // Detects emojis on web pages and adds tooltips with their names
 
 import emojiDataFile from "./emoji-data.json";
+import { createRuntimeCoordinator } from "./runtime-coordinator";
 
 // Tooltip options interface (must match popup/popup.ts)
 interface TooltipOptions {
@@ -25,6 +26,10 @@ const DEFAULT_OPTIONS: TooltipOptions = {
 // Current options (loaded from storage)
 let currentOptions: TooltipOptions = { ...DEFAULT_OPTIONS };
 
+type Cleanup = () => void;
+let runtimeActive = false;
+let runtimeStartId = 0;
+let runtimeCleanups: Cleanup[] = [];
 
 // Emoji regex that matches Unicode emojis including:
 // - Emoji_Presentation: emojis that render as emoji by default
@@ -40,6 +45,7 @@ const EMOJI_REGEX =
 
 // Data attribute to mark processed spans
 const PROCESSED_ATTR = "data-emoji-revealer";
+const RUNTIME_OWNER = __DEV__ ? "dev" : "prod";
 
 // Elements to skip when processing
 const SKIP_TAGS = new Set([
@@ -135,7 +141,9 @@ function loadOptions(): Promise<TooltipOptions> {
  * Update all existing emoji tooltips with new formatting
  */
 function updateAllTooltips(): void {
-  const spans = document.querySelectorAll(`[${PROCESSED_ATTR}][${EMOJI_CHAR_ATTR}]`);
+  const spans = document.querySelectorAll(
+    `[${PROCESSED_ATTR}="${RUNTIME_OWNER}"][${EMOJI_CHAR_ATTR}]`
+  );
   for (const span of spans) {
     const emoji = span.getAttribute(EMOJI_CHAR_ATTR);
     if (emoji) {
@@ -153,7 +161,9 @@ function updateAllTooltips(): void {
  */
 function removeAllTooltips(): void {
   hideFloatingTooltip();
-  const elements = document.querySelectorAll(`[${PROCESSED_ATTR}]`);
+  const elements = document.querySelectorAll(
+    `[${PROCESSED_ATTR}="${RUNTIME_OWNER}"]`
+  );
   for (const el of elements) {
     if (el.tagName === "IMG") {
       el.removeAttribute("title");
@@ -183,7 +193,7 @@ function processEmojiImg(img: HTMLImageElement): void {
   const name = getEmojiName(emoji);
   if (!name) return;
 
-  img.setAttribute(PROCESSED_ATTR, "true");
+  img.setAttribute(PROCESSED_ATTR, RUNTIME_OWNER);
   img.setAttribute(EMOJI_CHAR_ATTR, emoji);
   img.setAttribute("title", formatTooltip(emoji, name));
 }
@@ -331,7 +341,7 @@ function processTextNode(textNode: Text): void {
 
     // Create span for emoji
     const span = document.createElement("span");
-    span.setAttribute(PROCESSED_ATTR, "true");
+    span.setAttribute(PROCESSED_ATTR, RUNTIME_OWNER);
     span.setAttribute(EMOJI_CHAR_ATTR, emoji);
     const name = getEmojiName(emoji)!;
     span.setAttribute("title", formatTooltip(emoji, name));
@@ -441,6 +451,13 @@ function hideFloatingTooltip(): void {
   }
 }
 
+function removeFloatingTooltip(): void {
+  if (floatingTooltip) {
+    floatingTooltip.remove();
+    floatingTooltip = null;
+  }
+}
+
 /**
  * Find an emoji in text that covers the given UTF-16 offset
  */
@@ -465,8 +482,8 @@ function findEmojiAtOffset(text: string, offset: number): string | null {
  */
 let pendingEditableMouseMove: number | null = null;
 
-function setupEditableTooltips(): void {
-  document.addEventListener("mousemove", (e: MouseEvent) => {
+function setupEditableTooltips(): Cleanup {
+  const handleMouseMove = (e: MouseEvent): void => {
     if (!currentOptions.enabled || !currentOptions.showInEditableAreas) {
       hideFloatingTooltip();
       return;
@@ -534,16 +551,27 @@ function setupEditableTooltips(): void {
       }
       showFloatingTooltip(formatTooltip(emoji, name), clientX, clientY);
     });
-  });
+  };
 
+  document.addEventListener("mousemove", handleMouseMove);
   document.addEventListener("scroll", hideFloatingTooltip, true);
+
+  return () => {
+    document.removeEventListener("mousemove", handleMouseMove);
+    document.removeEventListener("scroll", hideFloatingTooltip, true);
+    if (pendingEditableMouseMove !== null) {
+      cancelAnimationFrame(pendingEditableMouseMove);
+      pendingEditableMouseMove = null;
+    }
+    hideFloatingTooltip();
+  };
 }
 
 /**
  * Set up MutationObserver to handle dynamically added content
  * Uses debouncing to batch process mutations and avoid performance issues
  */
-function setupObserver(): void {
+function setupObserver(): Cleanup {
   const DEBOUNCE_MS = 100;
   let pendingNodes: Set<Node> = new Set();
   let timeoutId: number | null = null;
@@ -605,14 +633,26 @@ function setupObserver(): void {
     subtree: true,
     characterData: true,
   });
+
+  return () => {
+    observer.disconnect();
+    pendingNodes.clear();
+    if (timeoutId !== null) {
+      window.clearTimeout(timeoutId);
+      timeoutId = null;
+    }
+  };
 }
 
 /**
  * Set up listener for storage changes to update tooltips in real-time
  */
-function setupStorageListener(): void {
+function setupStorageListener(): Cleanup {
   if (typeof chrome !== "undefined" && chrome.storage?.onChanged) {
-    chrome.storage.onChanged.addListener((changes, areaName) => {
+    const handleStorageChange = (
+      changes: Record<string, chrome.storage.StorageChange>,
+      areaName: string
+    ): void => {
       if (areaName !== "sync") return;
 
       // Handle enabled toggle
@@ -655,37 +695,87 @@ function setupStorageListener(): void {
       if (optionsChanged && currentOptions.enabled) {
         updateAllTooltips();
       }
+    };
+
+    chrome.storage.onChanged.addListener(handleStorageChange);
+    return () => {
+      chrome.storage.onChanged.removeListener(handleStorageChange);
+    };
+  }
+
+  return () => {};
+}
+
+function addRuntimeCleanup(cleanup: Cleanup): void {
+  if (runtimeActive) {
+    runtimeCleanups.push(cleanup);
+  } else {
+    cleanup();
+  }
+}
+
+function startActiveRuntime(): void {
+  if (document.body) {
+    if (process.env.NODE_ENV === "development") {
+      console.log("Emoji Revealer: Processing document");
+    }
+    processDocument();
+    addRuntimeCleanup(setupObserver());
+    addRuntimeCleanup(setupEditableTooltips());
+  } else {
+    const handleDOMContentLoaded = (): void => {
+      if (!runtimeActive) return;
+      if (process.env.NODE_ENV === "development") {
+        console.log("Emoji Revealer: DOMContentLoaded, processing document");
+      }
+      processDocument();
+      addRuntimeCleanup(setupObserver());
+      addRuntimeCleanup(setupEditableTooltips());
+    };
+
+    document.addEventListener("DOMContentLoaded", handleDOMContentLoaded);
+    addRuntimeCleanup(() => {
+      document.removeEventListener("DOMContentLoaded", handleDOMContentLoaded);
     });
   }
 }
 
-// Initialize when DOM is ready
-async function init(): Promise<void> {
+async function startContentRuntime(): Promise<void> {
+  if (runtimeActive) return;
+  runtimeActive = true;
+  const startId = ++runtimeStartId;
+
   if (process.env.NODE_ENV === "development") {
     console.log("Emoji Revealer: Initializing content script (dev mode)");
   }
 
   // Load options first
   currentOptions = await loadOptions();
-  setupStorageListener();
-
-  if (document.body) {
-    if (process.env.NODE_ENV === "development") {
-      console.log("Emoji Revealer: Processing document");
-    }
-    processDocument();
-    setupObserver();
-    setupEditableTooltips();
-  } else {
-    document.addEventListener("DOMContentLoaded", () => {
-      if (process.env.NODE_ENV === "development") {
-        console.log("Emoji Revealer: DOMContentLoaded, processing document");
-      }
-      processDocument();
-      setupObserver();
-      setupEditableTooltips();
-    });
+  if (!runtimeActive || startId !== runtimeStartId) {
+    return;
   }
+
+  addRuntimeCleanup(setupStorageListener());
+  startActiveRuntime();
 }
 
-init();
+function stopContentRuntime(): void {
+  if (!runtimeActive) return;
+  runtimeActive = false;
+  runtimeStartId++;
+
+  for (const cleanup of runtimeCleanups.splice(0).reverse()) {
+    cleanup();
+  }
+
+  removeAllTooltips();
+  removeFloatingTooltip();
+}
+
+createRuntimeCoordinator({
+  isDev: __DEV__,
+  start: () => {
+    void startContentRuntime();
+  },
+  stop: stopContentRuntime,
+});
