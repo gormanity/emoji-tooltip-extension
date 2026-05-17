@@ -68,3 +68,48 @@ the names of emojis.
 - Favor commit granularity suitable for `jj split` if needed
 - Before starting work on a new task, verify that you are in a clean state using
   `jj st`, and commit or stash any unrelated changes first
+
+## Release Cutting Expectations
+
+- Use `jj` for release commits, bookmarks, and tags.
+- Bump release metadata in `package.json`, `package-lock.json`, and
+  `src/manifest.json`.
+- Validate with `npx tsc --noEmit`, `npm test`, `npm run build`, and
+  `npm run build:dev` before pushing a release.
+- Move the `main` bookmark to the release commit, create the release tag with
+  `jj tag set -r main vX.Y.Z`, and push with
+  `jj git push --bookmark main --tag vX.Y.Z --remote origin`.
+- Verify the GitHub release workflow completes and that release assets are
+  uploaded.
+
+## Release Notes Guidance
+
+Write release notes in the project's existing concise, user-facing style:
+
+```markdown
+Short plain-language summary sentence or title.
+
+- **User-visible change** — describe the practical impact in one sentence
+- **Another change** — keep this focused on behavior, compatibility, or support
+
+Optional short context sentence naming an affected site, browser, or workflow.
+
+**Full Changelog**: https://github.com/gormanity/emoji-tooltip-extension/compare/vPREVIOUS...vX.Y.Z
+```
+
+- Include only user-facing changes in release notes. Do not list internal
+  implementation details, build changes, tests, or refactors unless they have a
+  visible user impact.
+- If a release has no direct user-facing change, use one short general statement
+  explaining the purpose of the release instead of listing internal work.
+- Prefer hand-written notes over raw generated PR lists for user-facing
+  releases.
+- Use `## What's New` when a release has several user-visible improvements; for
+  small patch releases, a short summary plus bullets is enough.
+- Keep bullets impact-oriented, not implementation-oriented.
+- Mention permission changes explicitly; if there are none and that matters for
+  trust, say "No new permissions."
+- Include exactly one `Full Changelog` compare link.
+- Avoid duplicated GitHub-generated `What's Changed`, `New Contributors`, or
+  repeated `Full Changelog` sections unless intentionally publishing generated
+  notes.
