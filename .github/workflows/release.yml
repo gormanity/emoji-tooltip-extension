@@ -28,6 +28,9 @@ jobs:
       - name: Build extension
         run: npm run build
 
+      - name: Lint extension
+        run: npm run lint:addons
+
       - name: Set release name
         id: name
         run: echo "value=${GITHUB_REF_NAME//\//-}" >> "$GITHUB_OUTPUT"

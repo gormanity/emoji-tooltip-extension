@@ -164,6 +164,9 @@ Single Node.js script that:
 
 Watch mode (`--watch`) rebuilds on file changes.
 
+To run the local validation suite:
+- `npm run check`: Runs TypeScript validation, tests, the production build, and Mozilla Add-ons linting against `dist/prod`
+
 ## Development Build
 
 A local-only development build can be triggered with the `--dev` flag. This build:
@@ -188,8 +191,9 @@ To build everything:
 Triggered by pushing a `v*` tag:
 
 1. Runs `npm ci && npm run build`
-2. Zips `dist/` (excluding store assets and sourcemaps)
-3. Creates GitHub release with the zip attached
+2. Runs Mozilla Add-ons linting against `dist/prod`
+3. Zips `dist/` (excluding store assets and sourcemaps)
+4. Creates GitHub release with the zip attached
 
 ## Resources
 

@@ -74,8 +74,8 @@ the names of emojis.
 - Use `jj` for release commits, bookmarks, and tags.
 - Bump release metadata in `package.json`, `package-lock.json`, and
   `src/manifest.json`.
-- Validate with `npx tsc --noEmit`, `npm test`, `npm run build`, and
-  `npm run build:dev` before pushing a release.
+- Validate with `npm run check` and `npm run build:dev` before pushing a
+  release.
 - Move the `main` bookmark to the release commit, create the release tag with
   `jj tag set -r main vX.Y.Z`, and push with
   `jj git push --bookmark main --tag vX.Y.Z --remote origin`.

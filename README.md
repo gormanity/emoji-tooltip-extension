@@ -100,7 +100,7 @@ Use the toggle switch to enable or disable the extension.
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 20+
 - npm
 
 ### Setup
@@ -116,6 +116,15 @@ npm run build
 ```
 
 The built extension will be in the `dist/` directory.
+
+### Check
+
+```bash
+npm run check
+```
+
+Runs TypeScript validation, tests, the production build, and Mozilla
+Add-ons linting against `dist/prod`.
 
 ### Watch mode
 
