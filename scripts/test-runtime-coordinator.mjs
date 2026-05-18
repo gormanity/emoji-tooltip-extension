@@ -183,15 +183,20 @@ const {
   const win = new FakeWindow();
   withFakeClock(win, () => {
     const runtime = runtimeCounters();
+    let suspends = 0;
+    let resumes = 0;
 
     createRuntimeCoordinator({
       isDev: false,
       win,
       start: () => runtime.start(),
       stop: () => runtime.stop(),
+      onSuspend: () => suspends++,
+      onResume: () => resumes++,
     });
 
     win.emitMessage({ type: DEV_HEARTBEAT_MESSAGE });
+    assert.equal(suspends, 1);
     win.tick(RUNTIME_COORDINATOR_TIMING.prodGraceMs);
     assert.equal(runtime.starts, 0);
     win.tick(
@@ -200,6 +205,7 @@ const {
         1
     );
     assert.equal(runtime.starts, 0);
+    assert.equal(resumes, 0);
   });
 }
 
@@ -207,18 +213,23 @@ const {
   const win = new FakeWindow();
   withFakeClock(win, () => {
     const runtime = runtimeCounters();
+    let suspends = 0;
 
     createRuntimeCoordinator({
       isDev: false,
       win,
       start: () => runtime.start(),
       stop: () => runtime.stop(),
+      onSuspend: () => suspends++,
     });
 
     win.tick(RUNTIME_COORDINATOR_TIMING.prodGraceMs);
     assert.equal(runtime.starts, 1);
     win.emitMessage({ type: DEV_HEARTBEAT_MESSAGE });
     assert.equal(runtime.stops, 1);
+    assert.equal(suspends, 1);
+    win.emitMessage({ type: DEV_HEARTBEAT_MESSAGE });
+    assert.equal(suspends, 1);
   });
 }
 
@@ -226,19 +237,23 @@ const {
   const win = new FakeWindow();
   withFakeClock(win, () => {
     const runtime = runtimeCounters();
+    let resumes = 0;
 
     createRuntimeCoordinator({
       isDev: false,
       win,
       start: () => runtime.start(),
       stop: () => runtime.stop(),
+      onResume: () => resumes++,
     });
 
     win.emitMessage({ type: DEV_HEARTBEAT_MESSAGE });
     win.tick(RUNTIME_COORDINATOR_TIMING.devStaleMs - 1);
     assert.equal(runtime.starts, 0);
+    assert.equal(resumes, 0);
     win.tick(1);
     assert.equal(runtime.starts, 1);
+    assert.equal(resumes, 1);
   });
 }
 

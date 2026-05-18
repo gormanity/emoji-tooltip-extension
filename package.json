@@ -14,7 +14,7 @@
     "build:safari": "xcodebuild -project 'safari/Emoji Revealer/Emoji Revealer.xcodeproj' -scheme 'Emoji Revealer (macOS)' -configuration Release -derivedDataPath /tmp/emoji-revealer-build CODE_SIGN_IDENTITY='' CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO",
     "generate-emoji-data": "node scripts/generate-emoji-data.mjs",
     "test": "node scripts/test-emoji-regex.mjs && node scripts/test-runtime-coordinator.mjs",
-    "lint:addons": "addons-linter --warnings-as-errors dist/prod",
+    "lint:addons": "addons-linter --warnings-as-errors --enable-background-service-worker dist/prod",
     "check": "npx tsc --noEmit && npm test && npm run build && npm run lint:addons"
   },
   "devDependencies": {

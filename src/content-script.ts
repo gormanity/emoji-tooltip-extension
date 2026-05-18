@@ -4,6 +4,8 @@
 import emojiDataFile from "./emoji-data.json";
 import { createRuntimeCoordinator } from "./runtime-coordinator";
 
+const RUNTIME_STATE_MESSAGE = "emoji-revealer:runtime-state";
+
 // Tooltip options interface (must match popup/popup.ts)
 interface TooltipOptions {
   enabled: boolean;
@@ -772,10 +774,35 @@ function stopContentRuntime(): void {
   removeFloatingTooltip();
 }
 
+function sendRuntimeState(disabledByDuplicate: boolean): void {
+  if (__DEV__ || typeof chrome === "undefined" || !chrome.runtime?.sendMessage) {
+    return;
+  }
+
+  chrome.runtime.sendMessage(
+    {
+      type: RUNTIME_STATE_MESSAGE,
+      disabledByDuplicate,
+    },
+    () => {
+      // Reading lastError prevents Chrome from logging when the service worker
+      // is unavailable during extension reloads or browser shutdown.
+      void chrome.runtime.lastError;
+    }
+  );
+}
+
 createRuntimeCoordinator({
   isDev: __DEV__,
   start: () => {
+    sendRuntimeState(false);
     void startContentRuntime();
   },
   stop: stopContentRuntime,
+  onSuspend: () => {
+    sendRuntimeState(true);
+  },
+  onResume: () => {
+    sendRuntimeState(false);
+  },
 });

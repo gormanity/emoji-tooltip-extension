@@ -10,6 +10,8 @@ interface RuntimeCoordinatorOptions {
   isDev: boolean;
   start: () => void;
   stop: () => void;
+  onResume?: () => void;
+  onSuspend?: () => void;
   win?: Window;
   timing?: Partial<typeof RUNTIME_COORDINATOR_TIMING>;
 }
@@ -41,6 +43,7 @@ export function createRuntimeCoordinator(
   let graceTimer: number | null = null;
   let staleTimer: number | null = null;
   let lastDevHeartbeat: number | null = null;
+  let suspended = false;
 
   const startRuntime = (): void => {
     if (active || stopped) return;
@@ -73,6 +76,10 @@ export function createRuntimeCoordinator(
 
   const maybeStartProd = (): void => {
     if (stopped || isHeartbeatFresh()) return;
+    if (suspended) {
+      suspended = false;
+      options.onResume?.();
+    }
     startRuntime();
   };
 
@@ -87,6 +94,10 @@ export function createRuntimeCoordinator(
   const handleMessage = (event: MessageEvent): void => {
     if (event.source !== win || !isDevHeartbeatMessage(event.data)) return;
     lastDevHeartbeat = Date.now();
+    if (!suspended) {
+      suspended = true;
+      options.onSuspend?.();
+    }
     stopRuntime();
     scheduleStaleCheck();
   };

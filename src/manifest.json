@@ -25,6 +25,9 @@
       "32": "icons/icon32.png"
     }
   },
+  "background": {
+    "service_worker": "service-worker.js"
+  },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],

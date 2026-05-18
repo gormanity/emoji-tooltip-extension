@@ -83,6 +83,25 @@ async function generateIcons() {
     const outputPath = path.join(iconsDistDir, `icon${size}.png`);
     await sharp(svgBuffer).resize(size, size).png().toFile(outputPath);
     console.log(`Generated icon${size}.png`);
+
+    const offOutputPath = path.join(iconsDistDir, `icon-off${size}.png`);
+    const bannerHeight = Math.max(6, Math.round(size * 0.3));
+    const fontSize = Math.max(5, Math.round(size * 0.2));
+    const overlay = Buffer.from(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
+        <rect x="0" y="${size - bannerHeight}" width="${size}" height="${bannerHeight}" fill="#333"/>
+        <text x="${size / 2}" y="${size - bannerHeight / 2}" dy="0.35em" font-family="Arial, sans-serif" font-size="${fontSize}" font-weight="700" fill="#fff" text-anchor="middle">OFF</text>
+      </svg>
+    `);
+
+    await sharp(svgBuffer)
+      .resize(size, size)
+      .grayscale()
+      .modulate({ brightness: 0.82 })
+      .composite([{ input: overlay }])
+      .png()
+      .toFile(offOutputPath);
+    console.log(`Generated icon-off${size}.png`);
   }
 }
 
