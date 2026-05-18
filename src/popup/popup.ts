@@ -18,10 +18,25 @@ const DEFAULT_OPTIONS: TooltipOptions = {
   showInEditableAreas: false,
 };
 
+const POPUP_DUPLICATE_STATUS_REQUEST_MESSAGE =
+  "emoji-revealer:get-duplicate-status";
+const POPUP_DUPLICATE_STATUS_CHANGED_MESSAGE =
+  "emoji-revealer:duplicate-status-changed";
+
 // Example with skin tone for preview
 const EXAMPLE_EMOJI = "\u{1F44B}\u{1F3FD}"; // 👋🏽
 const EXAMPLE_NAME = "waving hand: medium skin tone";
 
+interface DuplicateStatusResponse {
+  ok?: boolean;
+  data?: {
+    duplicateDetected?: boolean;
+  };
+}
+
+interface RuntimeMessage {
+  type?: string;
+}
 
 /**
  * Get code points string for an emoji
@@ -159,6 +174,46 @@ function updateEnabledState(enabled: boolean): void {
   }
 }
 
+function setDuplicateInstallBannerVisible(visible: boolean): void {
+  document
+    .getElementById("duplicateInstallBanner")
+    ?.classList.toggle("is-hidden", !visible);
+}
+
+function refreshDuplicateInstallStatus(): void {
+  try {
+    chrome.runtime.sendMessage(
+      { type: POPUP_DUPLICATE_STATUS_REQUEST_MESSAGE },
+      (response?: DuplicateStatusResponse) => {
+        try {
+          if (chrome.runtime.lastError) return;
+        } catch {
+          return;
+        }
+
+        setDuplicateInstallBannerVisible(
+          response?.ok === true &&
+            response.data?.duplicateDetected === true
+        );
+      }
+    );
+  } catch {
+    setDuplicateInstallBannerVisible(false);
+  }
+}
+
+function listenForDuplicateInstallStatus(): void {
+  try {
+    chrome.runtime.onMessage.addListener((message: RuntimeMessage) => {
+      if (message.type === POPUP_DUPLICATE_STATUS_CHANGED_MESSAGE) {
+        refreshDuplicateInstallStatus();
+      }
+    });
+  } catch {
+    // The popup is short-lived; missing status updates are non-critical.
+  }
+}
+
 /**
  * Handle option change
  */
@@ -199,6 +254,8 @@ async function init(): Promise<void> {
   setFormOptions(options);
   updatePreview(options);
   updateEnabledState(options.enabled);
+  refreshDuplicateInstallStatus();
+  listenForDuplicateInstallStatus();
 
   // Load emoji version info
   try {

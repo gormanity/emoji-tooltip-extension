@@ -1,8 +1,16 @@
 const RUNTIME_STATE_MESSAGE = "emoji-revealer:runtime-state";
+const DUPLICATE_STATUS_REQUEST_MESSAGE =
+  "emoji-revealer:get-duplicate-status";
+const DUPLICATE_STATUS_CHANGED_MESSAGE =
+  "emoji-revealer:duplicate-status-changed";
 
 interface RuntimeStateMessage {
   type: typeof RUNTIME_STATE_MESSAGE;
   disabledByDuplicate: boolean;
+}
+
+interface DuplicateStatusRequestMessage {
+  type: typeof DUPLICATE_STATUS_REQUEST_MESSAGE;
 }
 
 const NORMAL_ICON_PATHS = {
@@ -31,6 +39,20 @@ function isRuntimeStateMessage(message: unknown): message is RuntimeStateMessage
     typeof (message as { disabledByDuplicate?: unknown })
       .disabledByDuplicate === "boolean"
   );
+}
+
+function isDuplicateStatusRequestMessage(
+  message: unknown
+): message is DuplicateStatusRequestMessage {
+  return (
+    typeof message === "object" &&
+    message !== null &&
+    (message as { type?: unknown }).type === DUPLICATE_STATUS_REQUEST_MESSAGE
+  );
+}
+
+function isDuplicateDisabled(): boolean {
+  return suspendedFramesByTab.size > 0;
 }
 
 function setFrameState(
@@ -65,8 +87,9 @@ function scheduleNavigationStateFallback(tabId: number): void {
   navigationFallbackTimersByTab.set(
     tabId,
     setTimeout(() => {
+      const wasDisabledByDuplicate = isDuplicateDisabled();
       navigationFallbackTimersByTab.delete(tabId);
-      updateActionState();
+      updateDuplicateState(wasDisabledByDuplicate);
     }, NAVIGATION_STATE_FALLBACK_MS)
   );
 }
@@ -87,25 +110,56 @@ function setActionState(disabledByDuplicate: boolean): void {
 }
 
 function updateActionState(): void {
-  setActionState(suspendedFramesByTab.size > 0);
+  setActionState(isDuplicateDisabled());
 }
 
-chrome.runtime.onMessage.addListener((message, sender) => {
+function notifyDuplicateStatusChanged(): void {
+  try {
+    chrome.runtime.sendMessage(
+      { type: DUPLICATE_STATUS_CHANGED_MESSAGE },
+      () => {
+        void chrome.runtime.lastError;
+      }
+    );
+  } catch {
+    // The popup may not be open, and extension contexts can disappear.
+  }
+}
+
+function updateDuplicateState(wasDisabledByDuplicate: boolean): void {
+  updateActionState();
+
+  if (isDuplicateDisabled() !== wasDisabledByDuplicate) {
+    notifyDuplicateStatusChanged();
+  }
+}
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (isDuplicateStatusRequestMessage(message)) {
+    sendResponse({
+      ok: true,
+      data: { duplicateDetected: isDuplicateDisabled() },
+    });
+    return false;
+  }
+
   if (!isRuntimeStateMessage(message)) return false;
 
   const tabId = sender.tab?.id;
   if (tabId === undefined) return false;
 
+  const wasDisabledByDuplicate = isDuplicateDisabled();
   clearNavigationFallbackTimer(tabId);
   setFrameState(tabId, sender.frameId ?? 0, message.disabledByDuplicate);
-  updateActionState();
+  updateDuplicateState(wasDisabledByDuplicate);
   return false;
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
+  const wasDisabledByDuplicate = isDuplicateDisabled();
   clearNavigationFallbackTimer(tabId);
   suspendedFramesByTab.delete(tabId);
-  updateActionState();
+  updateDuplicateState(wasDisabledByDuplicate);
 });
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
