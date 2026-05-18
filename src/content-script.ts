@@ -127,35 +127,46 @@ function formatTooltip(emoji: string, name: string): string {
 /**
  * Load options from storage
  */
-function loadOptions(): Promise<TooltipOptions> {
-  return new Promise((resolve) => {
-    if (typeof chrome === "undefined") {
-      resolve(DEFAULT_OPTIONS);
-      return;
+function hasExtensionContext(): boolean {
+  try {
+    return typeof chrome !== "undefined" && Boolean(chrome.runtime?.id);
+  } catch {
+    return false;
+  }
+}
+
+async function loadOptions(): Promise<TooltipOptions> {
+  if (!hasExtensionContext()) {
+    return DEFAULT_OPTIONS;
+  }
+
+  try {
+    const storage = chrome.storage;
+    if (!storage?.sync) {
+      return DEFAULT_OPTIONS;
     }
 
-    try {
-      const storage = chrome.storage;
-      if (!storage?.sync) {
+    return await new Promise<TooltipOptions>((resolve) => {
+      try {
+        storage.sync.get(DEFAULT_OPTIONS, (result) => {
+          try {
+            void chrome.runtime.lastError;
+          } catch {
+            resolve(DEFAULT_OPTIONS);
+            return;
+          }
+
+          resolve(result as TooltipOptions);
+        });
+      } catch {
         resolve(DEFAULT_OPTIONS);
-        return;
       }
-
-      storage.sync.get(DEFAULT_OPTIONS, (result) => {
-        try {
-          void chrome.runtime.lastError;
-        } catch {
-          resolve(DEFAULT_OPTIONS);
-          return;
-        }
-        resolve(result as TooltipOptions);
-      });
-    } catch {
-      // Content scripts can outlive their extension context during reloads,
-      // updates, or disable/enable cycles. Option loading is best-effort.
-      resolve(DEFAULT_OPTIONS);
-    }
-  });
+    });
+  } catch {
+    // Content scripts can outlive their extension context during reloads,
+    // updates, or disable/enable cycles. Option loading is best-effort.
+    return DEFAULT_OPTIONS;
+  }
 }
 
 /**
@@ -670,7 +681,7 @@ function setupObserver(): Cleanup {
  */
 function setupStorageListener(): Cleanup {
   try {
-    if (typeof chrome === "undefined" || !chrome.storage?.onChanged) {
+    if (!hasExtensionContext() || !chrome.storage?.onChanged) {
       return () => {};
     }
 
@@ -774,18 +785,22 @@ async function startContentRuntime(): Promise<void> {
   runtimeActive = true;
   const startId = ++runtimeStartId;
 
-  if (process.env.NODE_ENV === "development") {
-    console.log("Emoji Revealer: Initializing content script (dev mode)");
-  }
+  try {
+    if (process.env.NODE_ENV === "development") {
+      console.log("Emoji Revealer: Initializing content script (dev mode)");
+    }
 
-  // Load options first
-  currentOptions = await loadOptions();
-  if (!runtimeActive || startId !== runtimeStartId) {
-    return;
-  }
+    // Load options first
+    currentOptions = await loadOptions();
+    if (!runtimeActive || startId !== runtimeStartId) {
+      return;
+    }
 
-  addRuntimeCleanup(setupStorageListener());
-  startActiveRuntime();
+    addRuntimeCleanup(setupStorageListener());
+    startActiveRuntime();
+  } catch {
+    stopContentRuntime();
+  }
 }
 
 function stopContentRuntime(): void {
@@ -802,7 +817,7 @@ function stopContentRuntime(): void {
 }
 
 function sendRuntimeState(disabledByDuplicate: boolean): void {
-  if (__DEV__ || typeof chrome === "undefined") {
+  if (__DEV__ || !hasExtensionContext()) {
     return;
   }
 
@@ -838,9 +853,7 @@ createRuntimeCoordinator({
   isDev: __DEV__,
   start: () => {
     sendRuntimeState(false);
-    void startContentRuntime().catch(() => {
-      stopContentRuntime();
-    });
+    void startContentRuntime();
   },
   stop: stopContentRuntime,
   onSuspend: () => {
