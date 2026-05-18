@@ -775,20 +775,30 @@ function stopContentRuntime(): void {
 }
 
 function sendRuntimeState(disabledByDuplicate: boolean): void {
-  if (__DEV__ || typeof chrome === "undefined" || !chrome.runtime?.sendMessage) {
+  if (__DEV__ || typeof chrome === "undefined") {
     return;
   }
 
   try {
-    chrome.runtime.sendMessage(
+    const runtime = chrome.runtime;
+    if (!runtime?.sendMessage) {
+      return;
+    }
+
+    runtime.sendMessage(
       {
         type: RUNTIME_STATE_MESSAGE,
         disabledByDuplicate,
       },
       () => {
-        // Reading lastError prevents Chrome from logging when the service worker
-        // is unavailable during extension reloads or browser shutdown.
-        void chrome.runtime.lastError;
+        try {
+          // Reading lastError prevents Chrome from logging when the service worker
+          // is unavailable during extension reloads or browser shutdown.
+          void chrome.runtime.lastError;
+        } catch {
+          // The callback can also run after this content script's extension
+          // context has been invalidated.
+        }
       }
     );
   } catch {
