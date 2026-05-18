@@ -52,8 +52,13 @@ function setFrameState(
 }
 
 function resetTabState(tabId: number): void {
+  const wasDisabledByDuplicate =
+    (suspendedFramesByTab.get(tabId)?.size ?? 0) > 0;
   suspendedFramesByTab.delete(tabId);
-  setActionState(tabId, false);
+
+  if (!wasDisabledByDuplicate) {
+    setActionState(tabId, false);
+  }
 }
 
 function setActionState(tabId: number, disabledByDuplicate: boolean): void {
