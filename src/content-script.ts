@@ -129,11 +129,30 @@ function formatTooltip(emoji: string, name: string): string {
  */
 function loadOptions(): Promise<TooltipOptions> {
   return new Promise((resolve) => {
-    if (typeof chrome !== "undefined" && chrome.storage?.sync) {
-      chrome.storage.sync.get(DEFAULT_OPTIONS, (result) => {
+    if (typeof chrome === "undefined") {
+      resolve(DEFAULT_OPTIONS);
+      return;
+    }
+
+    try {
+      const storage = chrome.storage;
+      if (!storage?.sync) {
+        resolve(DEFAULT_OPTIONS);
+        return;
+      }
+
+      storage.sync.get(DEFAULT_OPTIONS, (result) => {
+        try {
+          void chrome.runtime.lastError;
+        } catch {
+          resolve(DEFAULT_OPTIONS);
+          return;
+        }
         resolve(result as TooltipOptions);
       });
-    } else {
+    } catch {
+      // Content scripts can outlive their extension context during reloads,
+      // updates, or disable/enable cycles. Option loading is best-effort.
       resolve(DEFAULT_OPTIONS);
     }
   });
@@ -650,7 +669,11 @@ function setupObserver(): Cleanup {
  * Set up listener for storage changes to update tooltips in real-time
  */
 function setupStorageListener(): Cleanup {
-  if (typeof chrome !== "undefined" && chrome.storage?.onChanged) {
+  try {
+    if (typeof chrome === "undefined" || !chrome.storage?.onChanged) {
+      return () => {};
+    }
+
     const handleStorageChange = (
       changes: Record<string, chrome.storage.StorageChange>,
       areaName: string
@@ -701,11 +724,15 @@ function setupStorageListener(): Cleanup {
 
     chrome.storage.onChanged.addListener(handleStorageChange);
     return () => {
-      chrome.storage.onChanged.removeListener(handleStorageChange);
+      try {
+        chrome.storage.onChanged.removeListener(handleStorageChange);
+      } catch {
+        // The extension context can be invalidated before runtime cleanup runs.
+      }
     };
+  } catch {
+    return () => {};
   }
-
-  return () => {};
 }
 
 function addRuntimeCleanup(cleanup: Cleanup): void {
@@ -811,7 +838,9 @@ createRuntimeCoordinator({
   isDev: __DEV__,
   start: () => {
     sendRuntimeState(false);
-    void startContentRuntime();
+    void startContentRuntime().catch(() => {
+      stopContentRuntime();
+    });
   },
   stop: stopContentRuntime,
   onSuspend: () => {
