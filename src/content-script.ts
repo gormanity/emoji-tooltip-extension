@@ -779,17 +779,22 @@ function sendRuntimeState(disabledByDuplicate: boolean): void {
     return;
   }
 
-  chrome.runtime.sendMessage(
-    {
-      type: RUNTIME_STATE_MESSAGE,
-      disabledByDuplicate,
-    },
-    () => {
-      // Reading lastError prevents Chrome from logging when the service worker
-      // is unavailable during extension reloads or browser shutdown.
-      void chrome.runtime.lastError;
-    }
-  );
+  try {
+    chrome.runtime.sendMessage(
+      {
+        type: RUNTIME_STATE_MESSAGE,
+        disabledByDuplicate,
+      },
+      () => {
+        // Reading lastError prevents Chrome from logging when the service worker
+        // is unavailable during extension reloads or browser shutdown.
+        void chrome.runtime.lastError;
+      }
+    );
+  } catch {
+    // Content scripts can outlive their extension context during reloads,
+    // updates, or disable/enable cycles. Runtime state reporting is best-effort.
+  }
 }
 
 createRuntimeCoordinator({
