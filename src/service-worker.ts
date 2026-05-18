@@ -51,38 +51,23 @@ function setFrameState(
   }
 }
 
-function resetTabState(tabId: number): void {
-  const wasDisabledByDuplicate =
-    (suspendedFramesByTab.get(tabId)?.size ?? 0) > 0;
-  suspendedFramesByTab.delete(tabId);
-
-  if (!wasDisabledByDuplicate) {
-    setActionState(tabId, false);
-  }
-}
-
-function setActionState(tabId: number, disabledByDuplicate: boolean): void {
+function setActionState(disabledByDuplicate: boolean): void {
   void chrome.action.setIcon({
-    tabId,
     path: disabledByDuplicate ? OFF_ICON_PATHS : NORMAL_ICON_PATHS,
   });
   void chrome.action.setTitle({
-    tabId,
     title: disabledByDuplicate ? DUPLICATE_DISABLED_TITLE : NORMAL_TITLE,
   });
   void chrome.action.setBadgeText({
-    tabId,
     text: disabledByDuplicate ? "OFF" : "",
   });
   void chrome.action.setBadgeBackgroundColor({
-    tabId,
     color: "#555555",
   });
 }
 
-function updateTabAction(tabId: number): void {
-  const disabledByDuplicate = (suspendedFramesByTab.get(tabId)?.size ?? 0) > 0;
-  setActionState(tabId, disabledByDuplicate);
+function updateActionState(): void {
+  setActionState(suspendedFramesByTab.size > 0);
 }
 
 chrome.runtime.onMessage.addListener((message, sender) => {
@@ -92,16 +77,11 @@ chrome.runtime.onMessage.addListener((message, sender) => {
   if (tabId === undefined) return false;
 
   setFrameState(tabId, sender.frameId ?? 0, message.disabledByDuplicate);
-  updateTabAction(tabId);
+  updateActionState();
   return false;
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
   suspendedFramesByTab.delete(tabId);
-});
-
-chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
-  if (changeInfo.status === "loading") {
-    resetTabState(tabId);
-  }
+  updateActionState();
 });
