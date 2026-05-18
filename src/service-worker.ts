@@ -15,6 +15,10 @@ const OFF_ICON_PATHS = {
   32: "icons/icon-off32.png",
 };
 
+const NORMAL_TITLE = "Emoji Revealer";
+const DUPLICATE_DISABLED_TITLE =
+  "Emoji Revealer disabled while the dev build is active";
+
 const suspendedFramesByTab = new Map<number, Set<number>>();
 
 function isRuntimeStateMessage(message: unknown): message is RuntimeStateMessage {
@@ -49,19 +53,31 @@ function setFrameState(
 
 function resetTabState(tabId: number): void {
   suspendedFramesByTab.delete(tabId);
-  void chrome.action.setIcon({
-    tabId,
-    path: NORMAL_ICON_PATHS,
-  });
+  setActionState(tabId, false);
 }
 
-function updateTabIcon(tabId: number): void {
-  const disabledByDuplicate = (suspendedFramesByTab.get(tabId)?.size ?? 0) > 0;
-
+function setActionState(tabId: number, disabledByDuplicate: boolean): void {
   void chrome.action.setIcon({
     tabId,
     path: disabledByDuplicate ? OFF_ICON_PATHS : NORMAL_ICON_PATHS,
   });
+  void chrome.action.setTitle({
+    tabId,
+    title: disabledByDuplicate ? DUPLICATE_DISABLED_TITLE : NORMAL_TITLE,
+  });
+  void chrome.action.setBadgeText({
+    tabId,
+    text: disabledByDuplicate ? "OFF" : "",
+  });
+  void chrome.action.setBadgeBackgroundColor({
+    tabId,
+    color: "#555555",
+  });
+}
+
+function updateTabAction(tabId: number): void {
+  const disabledByDuplicate = (suspendedFramesByTab.get(tabId)?.size ?? 0) > 0;
+  setActionState(tabId, disabledByDuplicate);
 }
 
 chrome.runtime.onMessage.addListener((message, sender) => {
@@ -71,7 +87,7 @@ chrome.runtime.onMessage.addListener((message, sender) => {
   if (tabId === undefined) return false;
 
   setFrameState(tabId, sender.frameId ?? 0, message.disabledByDuplicate);
-  updateTabIcon(tabId);
+  updateTabAction(tabId);
   return false;
 });
 
