@@ -74,11 +74,19 @@ export function createRuntimeCoordinator(
     );
   };
 
+  const notify = (callback: (() => void) | undefined): void => {
+    try {
+      callback?.();
+    } catch {
+      // Runtime coordination must not leak optional UI/status hook failures.
+    }
+  };
+
   const maybeStartProd = (): void => {
     if (stopped || isHeartbeatFresh()) return;
     if (suspended) {
       suspended = false;
-      options.onResume?.();
+      notify(options.onResume);
     }
     startRuntime();
   };
@@ -96,7 +104,7 @@ export function createRuntimeCoordinator(
     lastDevHeartbeat = Date.now();
     if (!suspended) {
       suspended = true;
-      options.onSuspend?.();
+      notify(options.onSuspend);
     }
     stopRuntime();
     scheduleStaleCheck();

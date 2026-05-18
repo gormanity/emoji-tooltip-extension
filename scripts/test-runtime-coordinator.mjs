@@ -257,4 +257,31 @@ const {
   });
 }
 
+{
+  const win = new FakeWindow();
+  withFakeClock(win, () => {
+    const runtime = runtimeCounters();
+
+    assert.doesNotThrow(() => {
+      createRuntimeCoordinator({
+        isDev: false,
+        win,
+        start: () => runtime.start(),
+        stop: () => runtime.stop(),
+        onSuspend: () => {
+          throw new Error("status hook failed");
+        },
+        onResume: () => {
+          throw new Error("status hook failed");
+        },
+      });
+
+      win.emitMessage({ type: DEV_HEARTBEAT_MESSAGE });
+      win.tick(RUNTIME_COORDINATOR_TIMING.devStaleMs);
+    });
+
+    assert.equal(runtime.starts, 1);
+  });
+}
+
 console.log("Runtime coordinator tests passed");
