@@ -18,8 +18,10 @@ const OFF_ICON_PATHS = {
 const NORMAL_TITLE = "Emoji Revealer";
 const DUPLICATE_DISABLED_TITLE =
   "Emoji Revealer disabled while the dev build is active";
+const NAVIGATION_STATE_SETTLE_MS = 750;
 
 const suspendedFramesByTab = new Map<number, Set<number>>();
+const navigationSettleTimersByTab = new Map<number, number>();
 
 function isRuntimeStateMessage(message: unknown): message is RuntimeStateMessage {
   return (
@@ -51,6 +53,24 @@ function setFrameState(
   }
 }
 
+function clearNavigationSettleTimer(tabId: number): void {
+  const timer = navigationSettleTimersByTab.get(tabId);
+  if (timer === undefined) return;
+  clearTimeout(timer);
+  navigationSettleTimersByTab.delete(tabId);
+}
+
+function scheduleNavigationStateSettle(tabId: number): void {
+  clearNavigationSettleTimer(tabId);
+  navigationSettleTimersByTab.set(
+    tabId,
+    setTimeout(() => {
+      navigationSettleTimersByTab.delete(tabId);
+      updateActionState();
+    }, NAVIGATION_STATE_SETTLE_MS)
+  );
+}
+
 function setActionState(disabledByDuplicate: boolean): void {
   void chrome.action.setIcon({
     path: disabledByDuplicate ? OFF_ICON_PATHS : NORMAL_ICON_PATHS,
@@ -76,12 +96,26 @@ chrome.runtime.onMessage.addListener((message, sender) => {
   const tabId = sender.tab?.id;
   if (tabId === undefined) return false;
 
+  clearNavigationSettleTimer(tabId);
   setFrameState(tabId, sender.frameId ?? 0, message.disabledByDuplicate);
   updateActionState();
   return false;
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
+  clearNavigationSettleTimer(tabId);
   suspendedFramesByTab.delete(tabId);
   updateActionState();
+});
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+  if (changeInfo.status !== "loading") return;
+
+  const wasDisabledByDuplicate =
+    (suspendedFramesByTab.get(tabId)?.size ?? 0) > 0;
+  suspendedFramesByTab.delete(tabId);
+
+  if (wasDisabledByDuplicate) {
+    scheduleNavigationStateSettle(tabId);
+  }
 });
