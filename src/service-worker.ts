@@ -18,10 +18,10 @@ const OFF_ICON_PATHS = {
 const NORMAL_TITLE = "Emoji Revealer";
 const DUPLICATE_DISABLED_TITLE =
   "Emoji Revealer disabled while the dev build is active";
-const NAVIGATION_STATE_SETTLE_MS = 750;
+const NAVIGATION_STATE_FALLBACK_MS = 10000;
 
 const suspendedFramesByTab = new Map<number, Set<number>>();
-const navigationSettleTimersByTab = new Map<number, number>();
+const navigationFallbackTimersByTab = new Map<number, number>();
 
 function isRuntimeStateMessage(message: unknown): message is RuntimeStateMessage {
   return (
@@ -53,21 +53,21 @@ function setFrameState(
   }
 }
 
-function clearNavigationSettleTimer(tabId: number): void {
-  const timer = navigationSettleTimersByTab.get(tabId);
+function clearNavigationFallbackTimer(tabId: number): void {
+  const timer = navigationFallbackTimersByTab.get(tabId);
   if (timer === undefined) return;
   clearTimeout(timer);
-  navigationSettleTimersByTab.delete(tabId);
+  navigationFallbackTimersByTab.delete(tabId);
 }
 
-function scheduleNavigationStateSettle(tabId: number): void {
-  clearNavigationSettleTimer(tabId);
-  navigationSettleTimersByTab.set(
+function scheduleNavigationStateFallback(tabId: number): void {
+  clearNavigationFallbackTimer(tabId);
+  navigationFallbackTimersByTab.set(
     tabId,
     setTimeout(() => {
-      navigationSettleTimersByTab.delete(tabId);
+      navigationFallbackTimersByTab.delete(tabId);
       updateActionState();
-    }, NAVIGATION_STATE_SETTLE_MS)
+    }, NAVIGATION_STATE_FALLBACK_MS)
   );
 }
 
@@ -96,14 +96,14 @@ chrome.runtime.onMessage.addListener((message, sender) => {
   const tabId = sender.tab?.id;
   if (tabId === undefined) return false;
 
-  clearNavigationSettleTimer(tabId);
+  clearNavigationFallbackTimer(tabId);
   setFrameState(tabId, sender.frameId ?? 0, message.disabledByDuplicate);
   updateActionState();
   return false;
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
-  clearNavigationSettleTimer(tabId);
+  clearNavigationFallbackTimer(tabId);
   suspendedFramesByTab.delete(tabId);
   updateActionState();
 });
@@ -116,6 +116,6 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
   suspendedFramesByTab.delete(tabId);
 
   if (wasDisabledByDuplicate) {
-    scheduleNavigationStateSettle(tabId);
+    scheduleNavigationStateFallback(tabId);
   }
 });
