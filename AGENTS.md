@@ -87,12 +87,12 @@ the names of emojis.
 Write release notes in the project's existing concise, user-facing style:
 
 ```markdown
-Short plain-language summary sentence or title.
+Short user-facing summary.
 
-- **User-visible change** — describe the practical impact in one sentence
-- **Another change** — keep this focused on behavior, compatibility, or support
+- **User-facing change** — describe the visible behavior or practical impact.
+- **Another user-facing change** — include only if users benefit from knowing it.
 
-Optional short context sentence naming an affected site, browser, or workflow.
+Optional context sentence for affected browsers, sites, stores, or workflows.
 
 **Full Changelog**: https://github.com/gormanity/emoji-tooltip-extension/compare/vPREVIOUS...vX.Y.Z
 ```
@@ -104,12 +104,10 @@ Optional short context sentence naming an affected site, browser, or workflow.
   explaining the purpose of the release instead of listing internal work.
 - Prefer hand-written notes over raw generated PR lists for user-facing
   releases.
-- Use `## What's New` when a release has several user-visible improvements; for
-  small patch releases, a short summary plus bullets is enough.
+- Do not use standing `## What's New` or `## What's Changed` sections.
 - Keep bullets impact-oriented, not implementation-oriented.
 - Mention permission changes explicitly; if there are none and that matters for
   trust, say "No new permissions."
 - Include exactly one `Full Changelog` compare link.
-- Avoid duplicated GitHub-generated `What's Changed`, `New Contributors`, or
-  repeated `Full Changelog` sections unless intentionally publishing generated
-  notes.
+- Do not include GitHub-generated `What's Changed`, `New Contributors`, or
+  repeated `Full Changelog` sections.
