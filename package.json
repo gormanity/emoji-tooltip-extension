@@ -17,10 +17,13 @@
     "build:safari": "xcodebuild -project 'safari/Emoji Revealer/Emoji Revealer.xcodeproj' -scheme 'Emoji Revealer (macOS)' -configuration Release -derivedDataPath /tmp/emoji-revealer-build CODE_SIGN_IDENTITY='' CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO",
     "generate-emoji-data": "node scripts/generate-emoji-data.mjs",
     "test": "node scripts/test-emoji-regex.mjs && node scripts/test-runtime-coordinator.mjs",
+    "test:e2e": "npm run build:chrome && playwright test",
+    "test:e2e:headed": "npm run build:chrome && HEADED=1 playwright test",
     "lint:addons": "addons-linter --warnings-as-errors dist/firefox",
-    "check": "npx tsc --noEmit && npm test && npm run build:chrome && npm run build:edge && npm run build:firefox && npm run lint:addons"
+    "check": "npx tsc --noEmit && npm test && npm run test:e2e && npm run build:edge && npm run build:firefox && npm run lint:addons"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@types/chrome": "^0.0.280",
     "addons-linter": "^10.5.0",
     "esbuild": "^0.24.0",

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Emoji Revealer e2e fixture</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        line-height: 1.5;
+        margin: 24px;
+      }
+
+      #editable-tooltip {
+        display: inline-block;
+        font-size: 32px;
+        line-height: 1;
+        padding: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p id="plain-text">Hello 😀 and 👋🏽.</p>
+      <p id="dynamic-root">Dynamic root.</p>
+      <p id="aria-hidden" aria-hidden="true">Hidden 😀.</p>
+      <pre id="preformatted">Pre 😀.</pre>
+      <code id="code">Code 😀.</code>
+      <input id="input" value="Input 😀">
+      <textarea id="textarea">Textarea 😀</textarea>
+      <div id="editable" contenteditable="true">Editable 😀</div>
+      <div id="editable-tooltip" contenteditable="true">
+        <span id="editable-tooltip-emoji">😀</span>
+      </div>
+      <div id="role-textbox" role="textbox">Role textbox 😀</div>
+      <img id="emoji-image" data-emoji="😀" alt="emoji image">
+      <button id="append-dynamic" type="button">Append dynamic emoji</button>
+    </main>
+
+    <script>
+      document.getElementById("append-dynamic").addEventListener("click", () => {
+        const item = document.createElement("p");
+        item.id = "dynamic-text";
+        item.textContent = "Added 🚀.";
+        document.getElementById("dynamic-root").appendChild(item);
+      });
+    </script>
+  </body>
+</html>
