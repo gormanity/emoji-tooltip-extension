@@ -76,6 +76,8 @@ the names of emojis.
   `src/manifest.json`.
 - Validate with `npm run check` and `npm run build:dev` before pushing a
   release.
+- Treat add-ons linter warnings as release blockers. Address warnings before
+  cutting a release rather than waiving or documenting around them.
 - Move the `main` bookmark to the release commit, create the release tag with
   `jj tag set -r main vX.Y.Z`, and push with
   `jj git push --bookmark main --tag vX.Y.Z --remote origin`.
