@@ -165,13 +165,13 @@ Single Node.js script that:
 Watch mode (`--watch`) rebuilds on file changes.
 
 To run the local validation suite:
-- `npm run check`: Runs TypeScript validation, tests, the production build, and Mozilla Add-ons linting against `dist/prod`
+- `npm run check`: Runs TypeScript validation, tests, Chrome, Edge, and Firefox builds, and Mozilla Add-ons linting against `dist/firefox`
 
 ## Development Build
 
 A local-only development build can be triggered with the `--dev` flag. This build:
 
-1.  **Output Directory**: Outputs to `dist/dev/` (production builds output to `dist/prod/`). Store assets are output to `dist/store-assets/`.
+1.  **Output Directory**: Outputs to `dist/dev/` (platform builds output to `dist/chrome/`, `dist/edge/`, and `dist/firefox/`). Store assets are output to `dist/store-assets/`.
 2.  **Distinguishes the extension**: Appends ` (dev)` to the `name` in `manifest.json`.
 3.  **Enables debug logging**: Sets `process.env.NODE_ENV` to `development`, allowing conditional debug logs in the source code.
 4.  **Source Maps**: Ensures source maps are included for easier debugging (already enabled in standard build, but critical for dev).
@@ -184,16 +184,16 @@ To rebuild only store assets:
 - `npm run build:assets`: Rebuilds promo images in `dist/store-assets/`
 
 To build everything:
-- `npm run build:all`: Runs production, dev, and assets builds in sequence
+- `npm run build:all`: Runs Chrome, Edge, Firefox, dev, and assets builds in sequence
 
 ## Release Workflow (`.github/workflows/release.yml`)
 
 Triggered by pushing a `v*` tag:
 
-1. Runs `npm ci && npm run build`
-2. Runs Mozilla Add-ons linting against `dist/prod`
-3. Zips `dist/` (excluding store assets and sourcemaps)
-4. Creates GitHub release with the zip attached
+1. Runs `npm ci` and builds Chrome, Edge, and Firefox packages
+2. Runs Mozilla Add-ons linting against `dist/firefox`
+3. Zips each platform package, excluding sourcemaps
+4. Creates a GitHub release with Chrome, Edge, Firefox, and Safari assets attached
 
 ## Resources
 

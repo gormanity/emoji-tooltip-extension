@@ -7,6 +7,7 @@ import sharp from "sharp";
 
 const watchMode = process.argv.includes("--watch");
 const devMode = process.argv.includes("--dev");
+const edgeMode = process.argv.includes("--edge");
 const firefoxMode = process.argv.includes("--firefox");
 const assetsOnly = process.argv.includes("--assets");
 
@@ -15,7 +16,9 @@ const DIST_DIR = devMode
   ? "dist/dev"
   : firefoxMode
     ? "dist/firefox"
-    : "dist/prod";
+    : edgeMode
+      ? "dist/edge"
+      : "dist/chrome";
 const STORE_DIR = "store";
 const STORE_ASSETS_DIST = "dist/store-assets";
 const ICONS_DIR = path.join(SRC_DIR, "icons");

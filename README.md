@@ -124,7 +124,7 @@ npm run check
 ```
 
 Runs TypeScript validation, tests, the production build, and Mozilla
-Add-ons linting against `dist/prod`.
+Add-ons linting against `dist/firefox`.
 
 ### Watch mode
 

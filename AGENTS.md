@@ -82,7 +82,7 @@ the names of emojis.
   `jj tag set -r main vX.Y.Z`, and push with
   `jj git push --bookmark main --tag vX.Y.Z --remote origin`.
 - Verify the GitHub release workflow completes and that release assets are
-  uploaded.
+  uploaded for Chrome, Edge, Firefox, and Safari.
 
 ## Release Notes Guidance
 

@@ -25,8 +25,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build extension
-        run: npm run build
+      - name: Build Chrome extension
+        run: npm run build:chrome
+
+      - name: Build Edge extension
+        run: npm run build:edge
 
       - name: Build Firefox extension
         run: npm run build:firefox
@@ -38,10 +41,16 @@ jobs:
         id: name
         run: echo "value=${GITHUB_REF_NAME//\//-}" >> "$GITHUB_OUTPUT"
 
-      - name: Create extension zip
+      - name: Create Chrome extension zip
         run: |
-          cd dist/prod
-          zip -r ../../emoji-revealer-${{ steps.name.outputs.value }}.zip . \
+          cd dist/chrome
+          zip -r ../../emoji-revealer-chrome-${{ steps.name.outputs.value }}.zip . \
+            -x "*.map"
+
+      - name: Create Edge extension zip
+        run: |
+          cd dist/edge
+          zip -r ../../emoji-revealer-edge-${{ steps.name.outputs.value }}.zip . \
             -x "*.map"
 
       - name: Create Firefox extension zip
@@ -55,7 +64,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            emoji-revealer-${{ steps.name.outputs.value }}.zip
+            emoji-revealer-chrome-${{ steps.name.outputs.value }}.zip
+            emoji-revealer-edge-${{ steps.name.outputs.value }}.zip
             emoji-revealer-firefox-${{ steps.name.outputs.value }}.zip
           generate_release_notes: true
 
@@ -78,8 +88,8 @@ jobs:
       - name: Build extension
         run: npm run build:all
 
-      - name: Stage prod build for Xcode
-        run: cp -r dist/prod/. dist/
+      - name: Stage Chrome build for Xcode
+        run: cp -r dist/chrome/. dist/
 
       - name: Set release name
         id: name
