@@ -1,5 +1,10 @@
 // Popup script for Emoji Revealer options
 
+import {
+  DUPLICATE_STATUS_CHANGED_MESSAGE,
+  DUPLICATE_STATUS_REQUEST_MESSAGE,
+} from "../runtime-messages";
+
 interface TooltipOptions {
   enabled: boolean;
   showEmoji: boolean;
@@ -17,11 +22,6 @@ const DEFAULT_OPTIONS: TooltipOptions = {
   showSkinTone: true,
   showInEditableAreas: false,
 };
-
-const POPUP_DUPLICATE_STATUS_REQUEST_MESSAGE =
-  "emoji-revealer:get-duplicate-status";
-const POPUP_DUPLICATE_STATUS_CHANGED_MESSAGE =
-  "emoji-revealer:duplicate-status-changed";
 
 // Example with skin tone for preview
 const EXAMPLE_EMOJI = "\u{1F44B}\u{1F3FD}"; // 👋🏽
@@ -183,7 +183,7 @@ function setDuplicateInstallBannerVisible(visible: boolean): void {
 function refreshDuplicateInstallStatus(): void {
   try {
     chrome.runtime.sendMessage(
-      { type: POPUP_DUPLICATE_STATUS_REQUEST_MESSAGE },
+      { type: DUPLICATE_STATUS_REQUEST_MESSAGE },
       (response?: DuplicateStatusResponse) => {
         try {
           if (chrome.runtime.lastError) return;
@@ -205,7 +205,7 @@ function refreshDuplicateInstallStatus(): void {
 function listenForDuplicateInstallStatus(): void {
   try {
     chrome.runtime.onMessage.addListener((message: RuntimeMessage) => {
-      if (message.type === POPUP_DUPLICATE_STATUS_CHANGED_MESSAGE) {
+      if (message.type === DUPLICATE_STATUS_CHANGED_MESSAGE) {
         refreshDuplicateInstallStatus();
       }
     });

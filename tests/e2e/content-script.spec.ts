@@ -2,6 +2,7 @@ import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import {
   closePage,
   launchExtensionContext,
+  launchExtensionContextWithMetadata,
   setExtensionOptions,
   startFixtureServer,
   type FixtureServer,
@@ -136,3 +137,119 @@ test("updates existing tooltip formatting when options change", async () => {
     page!.locator('#plain-text [data-emoji-char="👋🏽"]'),
   ).toHaveAttribute("title", "👋🏽 waving hand (U+1F44B U+1F3FD)");
 });
+
+test("production build works on the target page by itself", async () => {
+  await page!.goto(`${server.origin}/content-fixture.html`);
+
+  await expect(
+    page!.locator('#plain-text [data-emoji-revealer="prod"][data-emoji-char="😀"]'),
+  ).toHaveAttribute("title", "grinning face");
+  await expect(page!.locator('[data-emoji-revealer="dev"]')).toHaveCount(0);
+});
+
+test("dev build wins on the target page when prod and dev are installed", async () => {
+  await context.close();
+  const loaded = await launchExtensionContextWithMetadata("prod-and-dev");
+  context = loaded.context;
+  page = await context.newPage();
+
+  await page.goto(`${server.origin}/content-fixture.html`);
+
+  await expect(
+    page.locator('#plain-text [data-emoji-revealer="dev"][data-emoji-char="😀"]'),
+  ).toHaveAttribute("title", "grinning face");
+  await expect(page.locator('[data-emoji-revealer="prod"]')).toHaveCount(0);
+});
+
+test("production popup and badge show duplicate-disabled without a target page", async () => {
+  await context.close();
+  const loaded = await launchExtensionContextWithMetadata("prod-and-dev");
+  context = loaded.context;
+
+  const popupPage = await openProductionPopup(context, loaded.extensionIds);
+  await expect(popupPage.locator("#duplicateInstallBanner")).toBeVisible();
+  await expectProductionBadgeText(context, loaded.extensionIds, "OFF");
+  await closePage(popupPage);
+});
+
+test("production resumes after page-local dev heartbeat stales", async () => {
+  await page!.goto(`${server.origin}/content-fixture.html`);
+  await emitDevHeartbeat(page!);
+  await page!.waitForTimeout(600);
+  await expect(page!.locator('[data-emoji-revealer="prod"]')).toHaveCount(0);
+
+  await page!.waitForTimeout(3500);
+  await expect(
+    page!.locator('#plain-text [data-emoji-revealer="prod"][data-emoji-char="😀"]'),
+  ).toHaveAttribute("title", "grinning face");
+});
+
+async function openProductionPopup(
+  context: BrowserContext,
+  extensionIds: string[],
+): Promise<Page> {
+  for (const extensionId of extensionIds) {
+    const popupPage = await context.newPage();
+    await popupPage.goto(`chrome-extension://${extensionId}/popup/popup.html`);
+    const isDevPopup = await popupPage.locator("#devBadge").evaluate((badge) => {
+      return !(badge as HTMLElement).classList.contains("is-hidden");
+    });
+
+    if (!isDevPopup) {
+      return popupPage;
+    }
+
+    await closePage(popupPage);
+  }
+
+  throw new Error("Unable to find production popup");
+}
+
+async function expectProductionBadgeText(
+  context: BrowserContext,
+  extensionIds: string[],
+  expectedText: string,
+): Promise<void> {
+  const productionExtensionId = await findProductionExtensionId(
+    context,
+    extensionIds,
+  );
+  const worker = context
+    .serviceWorkers()
+    .find((candidate) =>
+      candidate.url().startsWith(`chrome-extension://${productionExtensionId}/`),
+    );
+  if (!worker) {
+    throw new Error("Unable to find production service worker");
+  }
+
+  await expect
+    .poll(() => worker.evaluate(() => chrome.action.getBadgeText({})))
+    .toBe(expectedText);
+}
+
+async function findProductionExtensionId(
+  context: BrowserContext,
+  extensionIds: string[],
+): Promise<string> {
+  for (const extensionId of extensionIds) {
+    const popupPage = await context.newPage();
+    await popupPage.goto(`chrome-extension://${extensionId}/popup/popup.html`);
+    const isDevPopup = await popupPage.locator("#devBadge").evaluate((badge) => {
+      return !(badge as HTMLElement).classList.contains("is-hidden");
+    });
+    await closePage(popupPage);
+
+    if (!isDevPopup) {
+      return extensionId;
+    }
+  }
+
+  throw new Error("Unable to find production extension ID");
+}
+
+async function emitDevHeartbeat(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    window.postMessage({ type: "emoji-revealer:dev-heartbeat" }, "*");
+  });
+}

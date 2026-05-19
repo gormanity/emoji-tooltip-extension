@@ -3,8 +3,7 @@
 
 import emojiDataFile from "./emoji-data.json";
 import { createRuntimeCoordinator } from "./runtime-coordinator";
-
-const RUNTIME_STATE_MESSAGE = "emoji-revealer:runtime-state";
+import { RUNTIME_STATE_MESSAGE } from "./runtime-messages";
 
 // Tooltip options interface (must match popup/popup.ts)
 interface TooltipOptions {

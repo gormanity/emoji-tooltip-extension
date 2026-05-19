@@ -1,17 +1,17 @@
-const RUNTIME_STATE_MESSAGE = "emoji-revealer:runtime-state";
-const DUPLICATE_STATUS_REQUEST_MESSAGE =
-  "emoji-revealer:get-duplicate-status";
-const DUPLICATE_STATUS_CHANGED_MESSAGE =
-  "emoji-revealer:duplicate-status-changed";
-
-interface RuntimeStateMessage {
-  type: typeof RUNTIME_STATE_MESSAGE;
-  disabledByDuplicate: boolean;
-}
-
-interface DuplicateStatusRequestMessage {
-  type: typeof DUPLICATE_STATUS_REQUEST_MESSAGE;
-}
+import {
+  CHROMIUM_DEV_EXTENSION_ID,
+  CHROMIUM_PROD_EXTENSION_IDS,
+  DEV_BUILD_PING_INTERVAL_MS,
+  DEV_BUILD_PRESENCE_MESSAGE,
+  DEV_BUILD_PRESENCE_REQUEST_MESSAGE,
+  DEV_BUILD_STALE_MS,
+  DUPLICATE_STATUS_CHANGED_MESSAGE,
+  type DuplicateStatusResponse,
+  isDevBuildPresenceMessage,
+  isDevBuildPresenceRequestMessage,
+  isDuplicateStatusRequestMessage,
+  isRuntimeStateMessage,
+} from "./runtime-messages";
 
 const NORMAL_ICON_PATHS = {
   16: "icons/icon16.png",
@@ -30,29 +30,12 @@ const NAVIGATION_STATE_FALLBACK_MS = 10000;
 
 const suspendedFramesByTab = new Map<number, Set<number>>();
 const navigationFallbackTimersByTab = new Map<number, number>();
-
-function isRuntimeStateMessage(message: unknown): message is RuntimeStateMessage {
-  return (
-    typeof message === "object" &&
-    message !== null &&
-    (message as { type?: unknown }).type === RUNTIME_STATE_MESSAGE &&
-    typeof (message as { disabledByDuplicate?: unknown })
-      .disabledByDuplicate === "boolean"
-  );
-}
-
-function isDuplicateStatusRequestMessage(
-  message: unknown
-): message is DuplicateStatusRequestMessage {
-  return (
-    typeof message === "object" &&
-    message !== null &&
-    (message as { type?: unknown }).type === DUPLICATE_STATUS_REQUEST_MESSAGE
-  );
-}
+let currentActionState: boolean | null = null;
+let externalDevBuildPresent = false;
+let externalDevBuildStaleTimer: number | undefined;
 
 function isDuplicateDisabled(): boolean {
-  return suspendedFramesByTab.size > 0;
+  return externalDevBuildPresent || suspendedFramesByTab.size > 0;
 }
 
 function setFrameState(
@@ -95,6 +78,9 @@ function scheduleNavigationStateFallback(tabId: number): void {
 }
 
 function setActionState(disabledByDuplicate: boolean): void {
+  if (currentActionState === disabledByDuplicate) return;
+  currentActionState = disabledByDuplicate;
+
   void chrome.action.setIcon({
     path: disabledByDuplicate ? OFF_ICON_PATHS : NORMAL_ICON_PATHS,
   });
@@ -134,13 +120,75 @@ function updateDuplicateState(wasDisabledByDuplicate: boolean): void {
   }
 }
 
+function setExternalDevBuildPresent(present: boolean): void {
+  const wasDisabledByDuplicate = isDuplicateDisabled();
+  externalDevBuildPresent = present;
+  updateDuplicateState(wasDisabledByDuplicate);
+}
+
+function markExternalDevBuildPresent(): void {
+  setExternalDevBuildPresent(true);
+  if (externalDevBuildStaleTimer !== undefined) {
+    clearTimeout(externalDevBuildStaleTimer);
+  }
+  externalDevBuildStaleTimer = setTimeout(() => {
+    externalDevBuildStaleTimer = undefined;
+    setExternalDevBuildPresent(false);
+  }, DEV_BUILD_STALE_MS);
+}
+
+function startDevBuildHeartbeat(): void {
+  if (!__DEV__) return;
+
+  const pingProd = (): void => {
+    for (const extensionId of CHROMIUM_PROD_EXTENSION_IDS) {
+      chrome.runtime.sendMessage(
+        extensionId,
+        { type: DEV_BUILD_PRESENCE_MESSAGE },
+        () => {
+          void chrome.runtime.lastError;
+        }
+      );
+    }
+  };
+
+  pingProd();
+  setInterval(pingProd, DEV_BUILD_PING_INTERVAL_MS);
+}
+
+function probeDevBuildPresence(callback?: () => void): void {
+  if (__DEV__) {
+    callback?.();
+    return;
+  }
+
+  chrome.runtime.sendMessage(
+    CHROMIUM_DEV_EXTENSION_ID,
+    { type: DEV_BUILD_PRESENCE_REQUEST_MESSAGE },
+    (response?: { ok?: boolean }) => {
+      if (!chrome.runtime.lastError && response?.ok === true) {
+        markExternalDevBuildPresent();
+      }
+      callback?.();
+    }
+  );
+}
+
+function sendDuplicateStatusResponse(
+  sendResponse: (response: DuplicateStatusResponse) => void
+): void {
+  sendResponse({
+    ok: true,
+    data: { duplicateDetected: isDuplicateDisabled() },
+  });
+}
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (isDuplicateStatusRequestMessage(message)) {
-    sendResponse({
-      ok: true,
-      data: { duplicateDetected: isDuplicateDisabled() },
+    probeDevBuildPresence(() => {
+      sendDuplicateStatusResponse(sendResponse);
     });
-    return false;
+    return true;
   }
 
   if (!isRuntimeStateMessage(message)) return false;
@@ -152,6 +200,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   clearNavigationFallbackTimer(tabId);
   setFrameState(tabId, sender.frameId ?? 0, message.disabledByDuplicate);
   updateDuplicateState(wasDisabledByDuplicate);
+  return false;
+});
+
+chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => {
+  if (__DEV__) {
+    if (!CHROMIUM_PROD_EXTENSION_IDS.some((id) => id === sender.id)) {
+      return false;
+    }
+    if (!isDevBuildPresenceRequestMessage(message)) return false;
+
+    sendResponse({ ok: true });
+    return false;
+  }
+
+  if (sender.id !== CHROMIUM_DEV_EXTENSION_ID) return false;
+  if (!isDevBuildPresenceMessage(message)) return false;
+
+  markExternalDevBuildPresent();
+  sendResponse({ ok: true });
   return false;
 });
 
@@ -173,3 +240,6 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
     scheduleNavigationStateFallback(tabId);
   }
 });
+
+startDevBuildHeartbeat();
+probeDevBuildPresence();

@@ -11,9 +11,21 @@ const edgeMode = process.argv.includes("--edge");
 const firefoxMode = process.argv.includes("--firefox");
 const assetsOnly = process.argv.includes("--assets");
 
+const CHROMIUM_LOCAL_PROD_KEY =
+  "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAon169A6gYoRLLlMDTc++/JrmOUyoiNTkCbqk7TBL6rkzBFxQ3V96hBf9xqGGx+oH3aq9uxtGiu+6vFCTx+mhzUw48fuqxWYbe8wK+tsv/1V63dirfpS5KpA0alZgpSu7yH2b4mZNDAom8cfnXyKV+y3yZ5xGdOSD4eOKbIV67An275ij8DTNkZtH8Z3/VAPDQJthLuIRL/OfhGG80oZmNgY/i/j6+VmXP6uaRcFNjHMXl5YjA3k7uesNrQpxUwvTPE03LXK9RQkjfokZjJEayQ5NjDyf5PB+RHBbP3r6y5eTDHU8BD1KvXAyFM6k3lrvj0+AsrRRz1CWvJJz8oIOYwIDAQAB";
+const CHROMIUM_DEV_KEY =
+  "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApozcgbq3S9QZzI7CEn0l1qXG34ecA3MjK8sU7NYNW2L9EsInV9ZgkKeSomJ0nRXti+OVBRD9BVcwVeliuEgCJ4GQV51R9a1hbwdPC72B/+R6CVYa4Lm4SI2D4niGu2BVfDnXQIgi70plcuN5FirtVSkEkrAjIYb/boYSZrHNooSuz5nrScrAwdzJRkBjUJ+xBJ2tOVYmtFyg2W6vAbknBabNwL2mtuK/AAt1JeQ3e0ZlVO2xdjlOL5jq7o3Wb7E1PTiBVuBEgiRpEYEIirmxVsgRg7oSnfEe1bgoTK5Izkb7MTuvIh6V06nNU01tqnTM+GWQSnus7f4ENJzDi+EkDQIDAQAB";
+const CHROMIUM_LOCAL_PROD_EXTENSION_ID = "migochplggocmjacpndhoedemhcoabhc";
+const CHROMIUM_STORE_PROD_EXTENSION_ID = null;
+const CHROMIUM_DEV_EXTENSION_ID = "klehagjocloghgoedkclniblgonaknpd";
+
 const SRC_DIR = "src";
 const DIST_DIR = devMode
-  ? "dist/dev"
+  ? firefoxMode
+    ? "dist-dev/firefox"
+    : edgeMode
+      ? "dist-dev/edge"
+      : "dist-dev/chrome"
   : firefoxMode
     ? "dist/firefox"
     : edgeMode
@@ -41,20 +53,36 @@ async function copyStaticFiles() {
     const src = path.join(SRC_DIR, file);
     const dest = path.join(DIST_DIR, file);
     try {
-      if (file === "manifest.json" && devMode) {
+      if (file === "manifest.json") {
         const manifest = JSON.parse(await fs.readFile(src, "utf8"));
-        manifest.name += " (dev)";
+
+        if (devMode) {
+          manifest.name += " (dev)";
+        }
+
+        if (firefoxMode) {
+          manifest.background = {
+            ...manifest.background,
+            scripts: [manifest.background.service_worker],
+          };
+          delete manifest.background.service_worker;
+          if (devMode && manifest.browser_specific_settings?.gecko?.id) {
+            manifest.browser_specific_settings.gecko.id =
+              "emoji-revealer-dev@gormanity";
+          }
+        } else {
+          const prodIds = [
+            CHROMIUM_LOCAL_PROD_EXTENSION_ID,
+            CHROMIUM_STORE_PROD_EXTENSION_ID,
+          ].filter(Boolean);
+          manifest.key = devMode ? CHROMIUM_DEV_KEY : CHROMIUM_LOCAL_PROD_KEY;
+          manifest.externally_connectable = {
+            ids: devMode ? prodIds : [CHROMIUM_DEV_EXTENSION_ID],
+          };
+        }
+
         await fs.writeFile(dest, JSON.stringify(manifest, null, 2));
-        console.log(`Copied and modified ${file} for dev mode`);
-      } else if (file === "manifest.json" && firefoxMode) {
-        const manifest = JSON.parse(await fs.readFile(src, "utf8"));
-        manifest.background = {
-          ...manifest.background,
-          scripts: [manifest.background.service_worker],
-        };
-        delete manifest.background.service_worker;
-        await fs.writeFile(dest, JSON.stringify(manifest, null, 2));
-        console.log(`Copied and modified ${file} for Firefox`);
+        console.log(`Copied and modified ${file}`);
       } else {
         await fs.copyFile(src, dest);
         console.log(`Copied ${file}`);

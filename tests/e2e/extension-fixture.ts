@@ -35,6 +35,12 @@ export interface FixtureServer {
 }
 
 export type TooltipOptions = typeof DEFAULT_OPTIONS;
+export type ExtensionMode = "prod" | "prod-and-dev";
+
+export interface ExtensionContext {
+  context: BrowserContext;
+  extensionIds: string[];
+}
 
 export async function startFixtureServer(): Promise<FixtureServer> {
   const root = resolve("fixtures/e2e");
@@ -77,18 +83,30 @@ export async function startFixtureServer(): Promise<FixtureServer> {
 }
 
 export async function launchExtensionContext(): Promise<BrowserContext> {
+  return (await launchExtensionContextWithMetadata("prod")).context;
+}
+
+export async function launchExtensionContextWithMetadata(
+  mode: ExtensionMode = "prod",
+): Promise<ExtensionContext> {
   const extensionPath = resolve("dist/chrome");
+  const extensionPaths =
+    mode === "prod-and-dev"
+      ? [extensionPath, resolve("dist-dev/chrome")]
+      : [extensionPath];
   const userDataDir = await mkdtemp(join(tmpdir(), "emoji-revealer-e2e-"));
   const options: BrowserContextOptions = {
     channel: process.env.PLAYWRIGHT_CHROME_CHANNEL ?? "chromium",
     headless: process.env.HEADED !== "1",
     args: [
-      `--disable-extensions-except=${extensionPath}`,
-      `--load-extension=${extensionPath}`,
+      `--disable-extensions-except=${extensionPaths.join(",")}`,
+      `--load-extension=${extensionPaths.join(",")}`,
     ],
   };
 
-  return chromium.launchPersistentContext(userDataDir, options);
+  const context = await chromium.launchPersistentContext(userDataDir, options);
+  const extensionIds = await waitForExtensionIds(context, extensionPaths.length);
+  return { context, extensionIds };
 }
 
 export async function setExtensionOptions(
@@ -108,6 +126,28 @@ export async function closePage(page: Page | undefined): Promise<void> {
 
 async function getServiceWorker(context: BrowserContext): Promise<Worker> {
   return context.serviceWorkers()[0] ?? context.waitForEvent("serviceworker");
+}
+
+async function waitForExtensionIds(
+  context: BrowserContext,
+  expectedCount: number,
+): Promise<string[]> {
+  const ids = new Set<string>();
+
+  const collect = (worker: Worker): void => {
+    const match = worker.url().match(/^chrome-extension:\/\/([^/]+)\//);
+    if (match) ids.add(match[1]);
+  };
+
+  for (const worker of context.serviceWorkers()) {
+    collect(worker);
+  }
+
+  while (ids.size < expectedCount) {
+    collect(await context.waitForEvent("serviceworker"));
+  }
+
+  return [...ids];
 }
 
 async function listen(server: HttpServer): Promise<void> {

@@ -171,7 +171,7 @@ To run the local validation suite:
 
 A local-only development build can be triggered with the `--dev` flag. This build:
 
-1.  **Output Directory**: Outputs to `dist/dev/` (platform builds output to `dist/chrome/`, `dist/edge/`, and `dist/firefox/`). Store assets are output to `dist/store-assets/`.
+1.  **Output Directory**: Outputs to `dist-dev/chrome/` (production platform builds output to `dist/chrome/`, `dist/edge/`, and `dist/firefox/`). Store assets are output to `dist/store-assets/`.
 2.  **Distinguishes the extension**: Appends ` (dev)` to the `name` in `manifest.json`.
 3.  **Enables debug logging**: Sets `process.env.NODE_ENV` to `development`, allowing conditional debug logs in the source code.
 4.  **Source Maps**: Ensures source maps are included for easier debugging (already enabled in standard build, but critical for dev).
@@ -185,6 +185,50 @@ To rebuild only store assets:
 
 To build everything:
 - `npm run build:all`: Runs Chrome, Edge, Firefox, dev, and assets builds in sequence
+
+## Dev/Prod Coexistence Details
+
+Emoji Revealer uses hybrid dev/prod arbitration:
+
+- The target-page runtime is still protected by the page-local
+  `window.postMessage` heartbeat. Dev starts immediately, announces immediately,
+  and then announces every `1000ms`. Prod waits `500ms` before active startup,
+  suspends if a fresh dev heartbeat is present or appears later, and resumes
+  after the dev heartbeat is stale for `3500ms`.
+- The background service worker adds a cross-extension presence layer for
+  Chrome-family local testing. Dev pings known prod IDs with
+  `chrome.runtime.sendMessage`; prod accepts presence only from the known dev ID
+  and probes dev before reporting popup/status state. This lets the prod popup,
+  badge, and icon show duplicate-disabled even when no target-site tab is open.
+- The only cross-extension surface is `externally_connectable`, restricted to
+  explicit counterpart IDs. No `management` permission is used.
+
+Chrome IDs:
+
+| Build      | ID                                 | Folder / source                    |
+| ---------- | ---------------------------------- | ---------------------------------- |
+| Local prod | `migochplggocmjacpndhoedemhcoabhc` | `dist/chrome` from `npm run build` |
+| Store prod | Unknown                            | Not configured in this repo        |
+| Local dev  | `klehagjocloghgoedkclniblgonaknpd` | `dist-dev/chrome` from `npm run build:dev` |
+
+For local coexistence testing, load both unpacked folders in Chrome:
+
+- Prod: `dist/chrome`
+- Dev: `dist-dev/chrome`
+
+Prod suspension calls the content runtime teardown path. That removes
+extension-owned storage listeners, DOM observers, pending editable-tooltip
+animation frames, wrapped tooltip spans, image tooltip attributes, and floating
+tooltip UI. The page-local message listener and heartbeat timers are owned by
+the runtime coordinator and are removed when the coordinator itself stops.
+
+Known risks:
+
+- There is an intentional stale-timeout window of up to `3500ms` before prod
+  re-enables after dev disappears.
+- Loading the same folder twice can bypass the intended local prod/dev ID split.
+- The Chrome Web Store production ID is unknown until configured; the dev build
+  currently targets only the fixed local prod ID.
 
 ## Release Workflow (`.github/workflows/release.yml`)
 
