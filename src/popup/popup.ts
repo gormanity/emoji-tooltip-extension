@@ -214,6 +214,10 @@ function listenForDuplicateInstallStatus(): void {
   }
 }
 
+function updateDevBadge(): void {
+  document.getElementById("devBadge")?.classList.toggle("is-hidden", !__DEV__);
+}
+
 /**
  * Handle option change
  */
@@ -248,6 +252,8 @@ async function init(): Promise<void> {
   if (process.env.NODE_ENV === "development") {
     console.log("Emoji Revealer: Initializing popup (dev mode)");
   }
+
+  updateDevBadge();
 
   // Load saved options
   const options = await loadOptions();

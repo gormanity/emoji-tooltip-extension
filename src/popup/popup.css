@@ -29,6 +29,29 @@ h1 {
   color: #1a1a1a;
 }
 
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dev-badge {
+  border: 1px solid #b7791f;
+  border-radius: 4px;
+  background: #fff7e6;
+  color: #7c4a03;
+  padding: 2px 5px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.4px;
+}
+
+.dev-badge.is-hidden {
+  display: none;
+}
+
 /* Toggle switch */
 .toggle {
   position: relative;
