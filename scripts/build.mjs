@@ -7,10 +7,15 @@ import sharp from "sharp";
 
 const watchMode = process.argv.includes("--watch");
 const devMode = process.argv.includes("--dev");
+const firefoxMode = process.argv.includes("--firefox");
 const assetsOnly = process.argv.includes("--assets");
 
 const SRC_DIR = "src";
-const DIST_DIR = devMode ? "dist/dev" : "dist/prod";
+const DIST_DIR = devMode
+  ? "dist/dev"
+  : firefoxMode
+    ? "dist/firefox"
+    : "dist/prod";
 const STORE_DIR = "store";
 const STORE_ASSETS_DIST = "dist/store-assets";
 const ICONS_DIR = path.join(SRC_DIR, "icons");
@@ -38,6 +43,15 @@ async function copyStaticFiles() {
         manifest.name += " (dev)";
         await fs.writeFile(dest, JSON.stringify(manifest, null, 2));
         console.log(`Copied and modified ${file} for dev mode`);
+      } else if (file === "manifest.json" && firefoxMode) {
+        const manifest = JSON.parse(await fs.readFile(src, "utf8"));
+        manifest.background = {
+          ...manifest.background,
+          scripts: [manifest.background.service_worker],
+        };
+        delete manifest.background.service_worker;
+        await fs.writeFile(dest, JSON.stringify(manifest, null, 2));
+        console.log(`Copied and modified ${file} for Firefox`);
       } else {
         await fs.copyFile(src, dest);
         console.log(`Copied ${file}`);

@@ -28,6 +28,9 @@ jobs:
       - name: Build extension
         run: npm run build
 
+      - name: Build Firefox extension
+        run: npm run build:firefox
+
       - name: Lint extension
         run: npm run lint:addons
 
@@ -41,11 +44,19 @@ jobs:
           zip -r ../../emoji-revealer-${{ steps.name.outputs.value }}.zip . \
             -x "*.map"
 
+      - name: Create Firefox extension zip
+        run: |
+          cd dist/firefox
+          zip -r ../../emoji-revealer-firefox-${{ steps.name.outputs.value }}.zip . \
+            -x "*.map"
+
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: emoji-revealer-${{ steps.name.outputs.value }}.zip
+          files: |
+            emoji-revealer-${{ steps.name.outputs.value }}.zip
+            emoji-revealer-firefox-${{ steps.name.outputs.value }}.zip
           generate_release_notes: true
 
   build-safari:
