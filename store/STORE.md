@@ -32,6 +32,27 @@ GitHub: https://github.com/gormanity/emoji-tooltip-extension
 6. what is this emoji
 7. emoji hover
 
+## Edge Certification Notes
+
+Emoji Revealer shows emoji names in tooltips when users hover over emojis on
+webpages.
+
+Basic test:
+
+1. Install the extension.
+2. Open any webpage containing emoji text, such as a page with "Hello 😀".
+3. Hover over the emoji.
+4. Confirm the browser tooltip shows the emoji name.
+
+The extension has a popup with settings for enabling/disabling tooltips and
+choosing tooltip content, including emoji character, name, skin tone, and Unicode
+code points.
+
+This version includes an internal compatibility improvement for development
+environments where the published extension and an unpacked development build are
+installed in the same browser. Normal customer-facing behavior is unchanged. No
+new permissions were added.
+
 # Privacy Disclosures
 
 ## Single Purpose Description
