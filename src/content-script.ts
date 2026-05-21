@@ -3,7 +3,12 @@
 
 import emojiDataFile from "./emoji-data.json";
 import { createRuntimeCoordinator } from "./runtime-coordinator";
-import { RUNTIME_STATE_MESSAGE } from "./runtime-messages";
+import {
+  DUPLICATE_STATUS_REQUEST_MESSAGE,
+  RUNTIME_STATE_MESSAGE,
+  isDuplicateStatusChangedMessage,
+  type DuplicateStatusResponse,
+} from "./runtime-messages";
 
 // Tooltip options interface (must match popup/popup.ts)
 interface TooltipOptions {
@@ -31,6 +36,9 @@ type Cleanup = () => void;
 let runtimeActive = false;
 let runtimeStartId = 0;
 let runtimeCleanups: Cleanup[] = [];
+let coordinatorAllowsRuntime = false;
+let duplicateDisabledByDev = false;
+let duplicateStatusRequestId = 0;
 
 // Emoji regex that matches Unicode emojis including:
 // - Emoji_Presentation: emojis that render as emoji by default
@@ -287,6 +295,7 @@ function hasEditableAncestor(node: Node): boolean {
 
 // Regex for characters with default emoji presentation (render as emoji without FE0F)
 const EMOJI_PRESENTATION_RE = /^\p{Emoji_Presentation}$/u;
+const STANDALONE_EMOJI_COMPONENT_RE = /^[\u{1F3FB}-\u{1F3FF}\u{1F9B0}-\u{1F9B3}]$/u;
 
 /**
  * Check if a matched string is a single text-default character — an
@@ -301,6 +310,10 @@ function isTextDefaultChar(emoji: string): boolean {
   // If it has default emoji presentation, it's a real emoji
   if (EMOJI_PRESENTATION_RE.test(emoji)) return false;
   return true;
+}
+
+function isStandaloneEmojiComponent(emoji: string): boolean {
+  return STANDALONE_EMOJI_COMPONENT_RE.test(emoji);
 }
 
 /**
@@ -344,7 +357,7 @@ function processTextNode(textNode: Text): void {
     const name = getEmojiName(emoji);
     if (name) {
       matches.push({ emoji, index: match.index });
-    } else if (!isTextDefaultChar(emoji)) {
+    } else if (!isTextDefaultChar(emoji) && !isStandaloneEmojiComponent(emoji)) {
       // Only warn for sequences that look like real emojis but aren't in our data.
       // Text-default Extended_Pictographic chars (♪, ☆, etc.) without FE0F are
       // expected false positives from the regex — skip them silently.
@@ -848,17 +861,92 @@ function sendRuntimeState(disabledByDuplicate: boolean): void {
   }
 }
 
+function requestDuplicateStatus(): void {
+  if (__DEV__ || !hasExtensionContext()) {
+    maybeStartContentRuntime();
+    return;
+  }
+
+  const requestId = ++duplicateStatusRequestId;
+
+  try {
+    chrome.runtime.sendMessage(
+      { type: DUPLICATE_STATUS_REQUEST_MESSAGE },
+      (response?: DuplicateStatusResponse) => {
+        if (requestId !== duplicateStatusRequestId) return;
+
+        try {
+          if (chrome.runtime.lastError) {
+            applyDuplicateStatus(false);
+            return;
+          }
+        } catch {
+          applyDuplicateStatus(false);
+          return;
+        }
+
+        applyDuplicateStatus(
+          response?.ok === true && response.data.duplicateDetected
+        );
+      }
+    );
+  } catch {
+    applyDuplicateStatus(false);
+  }
+}
+
+function maybeStartContentRuntime(): void {
+  if (!coordinatorAllowsRuntime || duplicateDisabledByDev) return;
+  sendRuntimeState(false);
+  void startContentRuntime();
+}
+
+function applyDuplicateStatus(disabledByDuplicate: boolean): void {
+  if (__DEV__) return;
+
+  duplicateDisabledByDev = disabledByDuplicate;
+  if (duplicateDisabledByDev) {
+    sendRuntimeState(true);
+    stopContentRuntime();
+    return;
+  }
+
+  maybeStartContentRuntime();
+}
+
+function setupDuplicateStatusListener(): void {
+  if (__DEV__ || !hasExtensionContext()) return;
+
+  try {
+    chrome.runtime.onMessage.addListener((message: unknown) => {
+      if (!isDuplicateStatusChangedMessage(message)) return false;
+      applyDuplicateStatus(message.data.duplicateDetected);
+      return false;
+    });
+  } catch {
+    // Content scripts can outlive their extension context during reloads.
+  }
+}
+
 createRuntimeCoordinator({
   isDev: __DEV__,
   start: () => {
-    sendRuntimeState(false);
-    void startContentRuntime();
+    coordinatorAllowsRuntime = true;
+    requestDuplicateStatus();
   },
-  stop: stopContentRuntime,
+  stop: () => {
+    coordinatorAllowsRuntime = false;
+    stopContentRuntime();
+  },
   onSuspend: () => {
+    coordinatorAllowsRuntime = false;
     sendRuntimeState(true);
   },
   onResume: () => {
+    coordinatorAllowsRuntime = true;
     sendRuntimeState(false);
+    requestDuplicateStatus();
   },
 });
+
+setupDuplicateStatusListener();

@@ -100,15 +100,30 @@ function updateActionState(): void {
 }
 
 function notifyDuplicateStatusChanged(): void {
+  const message = {
+    type: DUPLICATE_STATUS_CHANGED_MESSAGE,
+    data: { duplicateDetected: isDuplicateDisabled() },
+  };
+
   try {
-    chrome.runtime.sendMessage(
-      { type: DUPLICATE_STATUS_CHANGED_MESSAGE },
-      () => {
-        void chrome.runtime.lastError;
-      }
-    );
+    chrome.runtime.sendMessage(message, () => {
+      void chrome.runtime.lastError;
+    });
   } catch {
     // The popup may not be open, and extension contexts can disappear.
+  }
+
+  try {
+    chrome.tabs.query({}, (tabs) => {
+      for (const tab of tabs) {
+        if (tab.id === undefined) continue;
+        chrome.tabs.sendMessage(tab.id, message, () => {
+          void chrome.runtime.lastError;
+        });
+      }
+    });
+  } catch {
+    // Content scripts may not be injected into any current tab.
   }
 }
 

@@ -1,6 +1,7 @@
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import {
   closePage,
+  getExtensionServiceWorker,
   launchExtensionContext,
   launchExtensionContextWithMetadata,
   setExtensionOptions,
@@ -161,6 +162,28 @@ test("dev build wins on the target page when prod and dev are installed", async 
   await expect(page.locator('[data-emoji-revealer="prod"]')).toHaveCount(0);
 });
 
+test("dev build ignores standalone emoji components without warnings", async () => {
+  await context.close();
+  const loaded = await launchExtensionContextWithMetadata("prod-and-dev");
+  context = loaded.context;
+  page = await context.newPage();
+  const warnings: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "warning") {
+      warnings.push(message.text());
+    }
+  });
+
+  await page.goto(`${server.origin}/content-fixture.html`);
+  await expect(page.locator("#emoji-components")).toContainText("Components");
+
+  expect(
+    warnings.filter((message) =>
+      message.includes("Emoji Revealer: Unrecognized emoji sequence"),
+    ),
+  ).toEqual([]);
+});
+
 test("production popup and badge show duplicate-disabled without a target page", async () => {
   await context.close();
   const loaded = await launchExtensionContextWithMetadata("prod-and-dev");
@@ -179,6 +202,22 @@ test("production resumes after page-local dev heartbeat stales", async () => {
   await expect(page!.locator('[data-emoji-revealer="prod"]')).toHaveCount(0);
 
   await page!.waitForTimeout(3500);
+  await expect(
+    page!.locator('#plain-text [data-emoji-revealer="prod"][data-emoji-char="😀"]'),
+  ).toHaveAttribute("title", "grinning face");
+});
+
+test("production content follows background duplicate-disabled state", async () => {
+  await page!.goto(`${server.origin}/content-fixture.html`);
+  await expect(
+    page!.locator('#plain-text [data-emoji-revealer="prod"][data-emoji-char="😀"]'),
+  ).toHaveAttribute("title", "grinning face");
+
+  const worker = await getExtensionServiceWorker(context);
+  await sendDuplicateStatusToActiveTab(worker, true);
+  await expect(page!.locator('[data-emoji-revealer="prod"]')).toHaveCount(0);
+
+  await sendDuplicateStatusToActiveTab(worker, false);
   await expect(
     page!.locator('#plain-text [data-emoji-revealer="prod"][data-emoji-char="😀"]'),
   ).toHaveAttribute("title", "grinning face");
@@ -252,4 +291,22 @@ async function emitDevHeartbeat(page: Page): Promise<void> {
   await page.evaluate(() => {
     window.postMessage({ type: "emoji-revealer:dev-heartbeat" }, "*");
   });
+}
+
+async function sendDuplicateStatusToActiveTab(
+  worker: Awaited<ReturnType<typeof getExtensionServiceWorker>>,
+  duplicateDetected: boolean,
+): Promise<void> {
+  await worker.evaluate(async (nextDuplicateDetected) => {
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const tabId = tabs[0]?.id;
+    if (tabId === undefined) {
+      throw new Error("Unable to find active tab");
+    }
+
+    await chrome.tabs.sendMessage(tabId, {
+      type: "emoji-revealer:duplicate-status-changed",
+      data: { duplicateDetected: nextDuplicateDetected },
+    });
+  }, duplicateDetected);
 }

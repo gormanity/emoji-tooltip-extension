@@ -128,6 +128,25 @@ async function getServiceWorker(context: BrowserContext): Promise<Worker> {
   return context.serviceWorkers()[0] ?? context.waitForEvent("serviceworker");
 }
 
+export async function getExtensionServiceWorker(
+  context: BrowserContext,
+  extensionId?: string,
+): Promise<Worker> {
+  if (!extensionId) return getServiceWorker(context);
+
+  const existingWorker = context
+    .serviceWorkers()
+    .find((worker) => worker.url().startsWith(`chrome-extension://${extensionId}/`));
+  if (existingWorker) return existingWorker;
+
+  while (true) {
+    const worker = await context.waitForEvent("serviceworker");
+    if (worker.url().startsWith(`chrome-extension://${extensionId}/`)) {
+      return worker;
+    }
+  }
+}
+
 async function waitForExtensionIds(
   context: BrowserContext,
   expectedCount: number,

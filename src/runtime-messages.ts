@@ -26,6 +26,13 @@ export interface DuplicateStatusRequestMessage {
   type: typeof DUPLICATE_STATUS_REQUEST_MESSAGE;
 }
 
+export interface DuplicateStatusChangedMessage {
+  type: typeof DUPLICATE_STATUS_CHANGED_MESSAGE;
+  data: {
+    duplicateDetected: boolean;
+  };
+}
+
 export interface DevBuildPresenceMessage {
   type: typeof DEV_BUILD_PRESENCE_MESSAGE;
 }
@@ -61,6 +68,22 @@ export function isDuplicateStatusRequestMessage(
     message !== null &&
     (message as Partial<DuplicateStatusRequestMessage>).type ===
       DUPLICATE_STATUS_REQUEST_MESSAGE
+  );
+}
+
+export function isDuplicateStatusChangedMessage(
+  message: unknown
+): message is DuplicateStatusChangedMessage {
+  return (
+    typeof message === "object" &&
+    message !== null &&
+    (message as Partial<DuplicateStatusChangedMessage>).type ===
+      DUPLICATE_STATUS_CHANGED_MESSAGE &&
+    typeof (message as Partial<DuplicateStatusChangedMessage>).data ===
+      "object" &&
+    (message as Partial<DuplicateStatusChangedMessage>).data !== null &&
+    typeof (message as DuplicateStatusChangedMessage).data
+      .duplicateDetected === "boolean"
   );
 }
 

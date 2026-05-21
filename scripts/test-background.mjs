@@ -99,6 +99,7 @@ function createChromeMock() {
   let tabRemovedListener;
   let tabUpdatedListener;
   const sentMessages = [];
+  const tabMessages = [];
   const actionCalls = {
     setBadgeBackgroundColor: [],
     setBadgeText: [],
@@ -166,6 +167,13 @@ function createChromeMock() {
       },
     },
     tabs: {
+      query: (_queryInfo, callback) => {
+        callback([{ id: 7 }]);
+      },
+      sendMessage: (tabId, message, callback) => {
+        tabMessages.push({ tabId, message });
+        callback?.();
+      },
       onRemoved: {
         addListener: (listener) => {
           tabRemovedListener = listener;
@@ -188,6 +196,7 @@ function createChromeMock() {
     get messageListener() {
       return messageListener;
     },
+    tabMessages,
     sentMessages,
     state,
     get tabRemovedListener() {
@@ -335,7 +344,17 @@ await withFakeTimers(async () => {
   assert.deepEqual(mock.actionCalls.setBadgeText.at(-1), { text: "OFF" });
   assert.ok(
     mock.sentMessages.some(
-      (message) => message.type === DUPLICATE_STATUS_CHANGED_MESSAGE
+      (message) =>
+        message.type === DUPLICATE_STATUS_CHANGED_MESSAGE &&
+        message.data?.duplicateDetected === true
+    )
+  );
+  assert.ok(
+    mock.tabMessages.some(
+      ({ message, tabId }) =>
+        tabId === 7 &&
+        message.type === DUPLICATE_STATUS_CHANGED_MESSAGE &&
+        message.data?.duplicateDetected === true
     )
   );
 
