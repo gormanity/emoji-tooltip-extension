@@ -72,6 +72,9 @@ the names of emojis.
 ## Release Cutting Expectations
 
 - Use `jj` for release commits, bookmarks, and tags.
+- Draft release notes before cutting a release and wait for explicit user
+  approval before tagging, pushing the tag, or replacing generated GitHub
+  release notes.
 - Bump release metadata in `package.json`, `package-lock.json`, and
   `src/manifest.json`.
 - Validate with `npm run check` and `npm run build:dev` before pushing a
