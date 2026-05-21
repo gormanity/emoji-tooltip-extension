@@ -185,6 +185,7 @@ To rebuild only store assets:
 
 To build everything:
 - `npm run build:all`: Runs Chrome, Edge, Firefox, dev, and assets builds in sequence
+- `npm run build:store`: Runs store-safe Chrome, Edge, and Firefox builds plus store assets. Chrome and Edge store builds omit the local manifest `key` so upload packages match the store-owned item IDs.
 
 ## Dev/Prod Coexistence Details
 

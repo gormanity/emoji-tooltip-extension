@@ -21,16 +21,22 @@ function idFromKey(key) {
 
 await execFileAsync("node", ["scripts/build.mjs"]);
 await execFileAsync("node", ["scripts/build.mjs", "--dev"]);
+await execFileAsync("node", ["scripts/build.mjs", "--store"]);
 
-const prodManifest = JSON.parse(await readFile("dist/chrome/manifest.json"));
 const devManifest = JSON.parse(
   await readFile("dist-dev/chrome/manifest.json")
 );
+const storeManifest = JSON.parse(await readFile("dist/chrome/manifest.json"));
 
-assert.equal(idFromKey(prodManifest.key), LOCAL_PROD_ID);
+await execFileAsync("node", ["scripts/build.mjs"]);
+const localManifest = JSON.parse(await readFile("dist/chrome/manifest.json"));
+
+assert.equal(idFromKey(localManifest.key), LOCAL_PROD_ID);
 assert.equal(idFromKey(devManifest.key), DEV_ID);
-assert.notEqual(idFromKey(prodManifest.key), idFromKey(devManifest.key));
-assert.deepEqual(prodManifest.externally_connectable, { ids: [DEV_ID] });
+assert.notEqual(idFromKey(localManifest.key), idFromKey(devManifest.key));
+assert.equal(storeManifest.key, undefined);
+assert.deepEqual(storeManifest.externally_connectable, { ids: [DEV_ID] });
+assert.deepEqual(localManifest.externally_connectable, { ids: [DEV_ID] });
 assert.deepEqual(devManifest.externally_connectable, {
   ids: [LOCAL_PROD_ID],
 });

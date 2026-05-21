@@ -7,6 +7,7 @@ import sharp from "sharp";
 
 const watchMode = process.argv.includes("--watch");
 const devMode = process.argv.includes("--dev");
+const storeMode = process.argv.includes("--store");
 const edgeMode = process.argv.includes("--edge");
 const firefoxMode = process.argv.includes("--firefox");
 const assetsOnly = process.argv.includes("--assets");
@@ -75,7 +76,11 @@ async function copyStaticFiles() {
             CHROMIUM_LOCAL_PROD_EXTENSION_ID,
             CHROMIUM_STORE_PROD_EXTENSION_ID,
           ].filter(Boolean);
-          manifest.key = devMode ? CHROMIUM_DEV_KEY : CHROMIUM_LOCAL_PROD_KEY;
+          if (devMode) {
+            manifest.key = CHROMIUM_DEV_KEY;
+          } else if (!storeMode) {
+            manifest.key = CHROMIUM_LOCAL_PROD_KEY;
+          }
           manifest.externally_connectable = {
             ids: devMode ? prodIds : [CHROMIUM_DEV_EXTENSION_ID],
           };
