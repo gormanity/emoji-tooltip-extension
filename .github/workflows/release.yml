@@ -5,6 +5,12 @@ on:
     tags:
       - "v*"
   workflow_dispatch:
+    inputs:
+      safari_distribution:
+        description: Safari distribution (App Store package is downloaded for manual submission)
+        type: choice
+        options: [developer-id, app-store-connect]
+        default: developer-id
 
 permissions:
   contents: write
@@ -70,8 +76,14 @@ jobs:
           generate_release_notes: true
 
   build-safari:
-    runs-on: macos-latest
+    runs-on: macos-15
     needs: build-extension
+    timeout-minutes: 45
+    environment: ${{ inputs.safari_distribution == 'app-store-connect' && 'safari-app-store' || 'safari-developer-id' }}
+    env:
+      SAFARI_DISTRIBUTION: ${{ inputs.safari_distribution || 'developer-id' }}
+      APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+      SAFARI_BUILD_NUMBER: ${{ github.run_number }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -85,34 +97,134 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build extension
-        run: npm run build:store
-
-      - name: Stage Chrome build for Xcode
-        run: cp -r dist/chrome/. dist/
-
-      - name: Set release name
-        id: name
-        run: echo "value=${GITHUB_REF_NAME//\//-}" >> "$GITHUB_OUTPUT"
-
-      - name: Build Safari app
+      - name: Set temporary paths
         run: |
-          xcodebuild \
-            -project "safari/Emoji Revealer/Emoji Revealer.xcodeproj" \
-            -scheme "Emoji Revealer (macOS)" \
-            -configuration Release \
-            -derivedDataPath /tmp/emoji-revealer-build \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO
+          echo "SAFARI_OUTPUT_DIR=$RUNNER_TEMP/safari-build" >> "$GITHUB_ENV"
+          echo "SIGNING_DIR=$RUNNER_TEMP/safari-signing" >> "$GITHUB_ENV"
 
-      - name: Zip Safari app
+      - name: Import Apple signing credentials
+        env:
+          CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APP_PROFILE_BASE64: ${{ secrets.APPLE_APP_PROFILE_BASE64 }}
+          EXTENSION_PROFILE_BASE64: ${{ secrets.APPLE_EXTENSION_PROFILE_BASE64 }}
+          NOTARY_KEY_BASE64: ${{ secrets.APPLE_NOTARY_KEY_BASE64 }}
+          NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
+          NOTARY_ISSUER_ID: ${{ secrets.APPLE_NOTARY_ISSUER_ID }}
         run: |
-          cd /tmp/emoji-revealer-build/Build/Products/Release
-          zip -r ${{ github.workspace }}/emoji-revealer-safari-${{ steps.name.outputs.value }}.zip "Emoji Revealer.app"
+          set -euo pipefail
+          umask 077
+          : "${APPLE_TEAM_ID:?Configure APPLE_TEAM_ID in the signing environment}"
+          : "${CERTIFICATE_P12_BASE64:?Configure APPLE_CERTIFICATE_P12_BASE64}"
+          : "${CERTIFICATE_PASSWORD:?Configure APPLE_CERTIFICATE_PASSWORD}"
+          mkdir -p "$SIGNING_DIR"
+          keychain="$SIGNING_DIR/signing.keychain-db"
+          password=$(openssl rand -hex 32)
+          echo "::add-mask::$password"
+          printf '%s' "$CERTIFICATE_P12_BASE64" | base64 --decode > "$SIGNING_DIR/certificate.p12"
+          security create-keychain -p "$password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$password" "$keychain"
+          security import "$SIGNING_DIR/certificate.p12" -P "$CERTIFICATE_PASSWORD" -k "$keychain" -T /usr/bin/codesign -T /usr/bin/productsign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -k "$password" "$keychain" > /dev/null
+          security list-keychains -d user -s "$keychain"
+          rm "$SIGNING_DIR/certificate.p12"
+          if [[ "$SAFARI_DISTRIBUTION" == developer-id ]]; then
+            : "${NOTARY_KEY_BASE64:?Configure APPLE_NOTARY_KEY_BASE64}"
+            : "${NOTARY_KEY_ID:?Configure APPLE_NOTARY_KEY_ID}"
+            : "${NOTARY_ISSUER_ID:?Configure APPLE_NOTARY_ISSUER_ID}"
+            printf '%s' "$NOTARY_KEY_BASE64" | base64 --decode > "$SIGNING_DIR/notary.p8"
+            xcrun notarytool store-credentials safari-notary --keychain "$keychain" \
+              --key "$SIGNING_DIR/notary.p8" --key-id "$NOTARY_KEY_ID" --issuer "$NOTARY_ISSUER_ID"
+            rm "$SIGNING_DIR/notary.p8"
+            echo 'SAFARI_SIGNING_IDENTITY=Developer ID Application' >> "$GITHUB_ENV"
+          else
+            : "${APP_PROFILE_BASE64:?Configure APPLE_APP_PROFILE_BASE64}"
+            : "${EXTENSION_PROFILE_BASE64:?Configure APPLE_EXTENSION_PROFILE_BASE64}"
+            profile_dir="$HOME/Library/MobileDevice/Provisioning Profiles"
+            mkdir -p "$profile_dir"
+            for kind in APP EXTENSION; do
+              variable="${kind}_PROFILE_BASE64"
+              printf '%s' "${!variable}" | base64 --decode > "$SIGNING_DIR/$kind.provisionprofile"
+              security cms -D -i "$SIGNING_DIR/$kind.provisionprofile" > "$SIGNING_DIR/$kind.plist"
+              uuid=$(/usr/libexec/PlistBuddy -c 'Print UUID' "$SIGNING_DIR/$kind.plist")
+              cp "$SIGNING_DIR/$kind.provisionprofile" "$profile_dir/$uuid.provisionprofile"
+              echo "$profile_dir/$uuid.provisionprofile" >> "$SIGNING_DIR/installed-profiles"
+              echo "SAFARI_${kind}_PROFILE=$uuid" >> "$GITHUB_ENV"
+            done
+            echo 'SAFARI_SIGNING_IDENTITY=Apple Distribution' >> "$GITHUB_ENV"
+          fi
 
-      - name: Upload Safari app to release
-        if: startsWith(github.ref, 'refs/tags/')
-        run: gh release upload "$GITHUB_REF_NAME" "emoji-revealer-safari-${{ steps.name.outputs.value }}.zip" --clobber
+      - name: Archive and verify signed Safari app
+        run: bash scripts/build-safari.sh
+
+      - name: Notarize and package GitHub download
+        if: env.SAFARI_DISTRIBUTION == 'developer-id'
+        run: |
+          set -euo pipefail
+          app="$SAFARI_OUTPUT_DIR/Emoji Revealer.xcarchive/Products/Applications/Emoji Revealer.app"
+          ditto -c -k --keepParent "$app" "$SAFARI_OUTPUT_DIR/notary.zip"
+          xcrun notarytool submit "$SAFARI_OUTPUT_DIR/notary.zip" \
+            --keychain "$SIGNING_DIR/signing.keychain-db" --keychain-profile safari-notary \
+            --wait --timeout 20m --output-format json > "$SAFARI_OUTPUT_DIR/notary-result.json"
+          python3 -c 'import json,sys; r=json.load(open(sys.argv[1])); print(r); sys.exit(0 if r.get("status") == "Accepted" else 1)' "$SAFARI_OUTPUT_DIR/notary-result.json"
+          xcrun stapler staple "$app"
+          xcrun stapler validate "$app"
+          codesign --verify --deep --strict --verbose=2 "$app"
+          spctl --assess --type execute --verbose=2 "$app"
+          mkdir -p "$SAFARI_OUTPUT_DIR/artifacts"
+          name="${GITHUB_REF_NAME//\//-}"
+          ditto -c -k --keepParent "$app" "$SAFARI_OUTPUT_DIR/artifacts/emoji-revealer-safari-$name.zip"
+
+      - name: Export App Store package for manual submission
+        if: env.SAFARI_DISTRIBUTION == 'app-store-connect'
+        run: |
+          python3 - <<'PYTHON'
+          import os, plistlib
+          options = {
+              "method": "app-store-connect", "destination": "export",
+              "signingStyle": "manual", "teamID": os.environ["APPLE_TEAM_ID"],
+              "signingCertificate": "Apple Distribution",
+              "installerSigningCertificate": "Mac Installer Distribution",
+              "manageAppVersionAndBuildNumber": False,
+              "generateAppStoreInformation": True,
+              "provisioningProfiles": {
+                  "com.gormanity.emoji-revealer": os.environ["SAFARI_APP_PROFILE"],
+                  "com.gormanity.emoji-revealer.Extension": os.environ["SAFARI_EXTENSION_PROFILE"],
+              },
+          }
+          with open(os.environ["SAFARI_OUTPUT_DIR"] + "/ExportOptions.plist", "wb") as output:
+              plistlib.dump(options, output)
+          PYTHON
+          xcodebuild -exportArchive \
+            -archivePath "$SAFARI_OUTPUT_DIR/Emoji Revealer.xcarchive" \
+            -exportOptionsPlist "$SAFARI_OUTPUT_DIR/ExportOptions.plist" \
+            -exportPath "$SAFARI_OUTPUT_DIR/artifacts"
+          shopt -s nullglob
+          packages=("$SAFARI_OUTPUT_DIR/artifacts/"*.pkg)
+          [[ ${#packages[@]} -eq 1 ]] || { echo 'Expected one signed App Store package'; exit 1; }
+          pkgutil --check-signature "${packages[0]}"
+
+      - name: Save Safari package
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari-${{ env.SAFARI_DISTRIBUTION }}-${{ github.run_number }}
+          path: ${{ env.SAFARI_OUTPUT_DIR }}/artifacts/
+          if-no-files-found: error
+
+      - name: Upload notarized Safari app to release
+        if: startsWith(github.ref, 'refs/tags/') && env.SAFARI_DISTRIBUTION == 'developer-id'
+        run: gh release upload "$GITHUB_REF_NAME" "$SAFARI_OUTPUT_DIR/artifacts/emoji-revealer-safari-${GITHUB_REF_NAME//\//-}.zip" --clobber
         env:
           GH_TOKEN: ${{ github.token }}
+
+      - name: Remove signing credentials
+        if: always()
+        run: |
+          if [[ -f "$SIGNING_DIR/installed-profiles" ]]; then
+            while IFS= read -r profile; do rm -f "$profile"; done < "$SIGNING_DIR/installed-profiles"
+          fi
+          if [[ -f "$SIGNING_DIR/signing.keychain-db" ]]; then
+            security delete-keychain "$SIGNING_DIR/signing.keychain-db"
+          fi
+          rm -rf "$SIGNING_DIR"

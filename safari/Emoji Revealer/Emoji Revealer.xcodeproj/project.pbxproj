@@ -41,6 +41,12 @@
 		F691A5CC2F4B003F0052C186 /* icons in Resources */ = {isa = PBXBuildFile; fileRef = F691A5C02F4B003F0052C186 /* icons */; };
 		F691A5CD2F4B003F0052C186 /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = F691A5C12F4B003F0052C186 /* manifest.json */; };
 		F691A5CE2F4B003F0052C186 /* content-script.js in Resources */ = {isa = PBXBuildFile; fileRef = F691A5C22F4B003F0052C186 /* content-script.js */; };
+		E01000000000000000000002 /* service-worker.js in Resources */ = {isa = PBXBuildFile; fileRef = E01000000000000000000001 /* service-worker.js */; };
+		E01000000000000000000003 /* service-worker.js in Resources */ = {isa = PBXBuildFile; fileRef = E01000000000000000000001 /* service-worker.js */; };
+		E03000000000000000000001 /* runtime-coordinator.js in Resources */ = {isa = PBXBuildFile; fileRef = E02000000000000000000001 /* runtime-coordinator.js */; };
+		E04000000000000000000001 /* runtime-coordinator.js in Resources */ = {isa = PBXBuildFile; fileRef = E02000000000000000000001 /* runtime-coordinator.js */; };
+		E03000000000000000000002 /* runtime-messages.js in Resources */ = {isa = PBXBuildFile; fileRef = E02000000000000000000002 /* runtime-messages.js */; };
+		E04000000000000000000002 /* runtime-messages.js in Resources */ = {isa = PBXBuildFile; fileRef = E02000000000000000000002 /* runtime-messages.js */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -114,6 +120,9 @@
 		F691A5C02F4B003F0052C186 /* icons */ = {isa = PBXFileReference; lastKnownFileType = folder; name = icons; path = ../../../dist/icons; sourceTree = "<group>"; };
 		F691A5C12F4B003F0052C186 /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = manifest.json; path = ../../../dist/manifest.json; sourceTree = "<group>"; };
 		F691A5C22F4B003F0052C186 /* content-script.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = "content-script.js"; path = "../../../dist/content-script.js"; sourceTree = "<group>"; };
+		E01000000000000000000001 /* service-worker.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = "service-worker.js"; path = "../../../dist/service-worker.js"; sourceTree = "<group>"; };
+		E02000000000000000000001 /* runtime-coordinator.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = "runtime-coordinator.js"; path = "../../../dist/runtime-coordinator.js"; sourceTree = "<group>"; };
+		E02000000000000000000002 /* runtime-messages.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = "runtime-messages.js"; path = "../../../dist/runtime-messages.js"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -250,6 +259,9 @@
 				F691A5C02F4B003F0052C186 /* icons */,
 				F691A5C12F4B003F0052C186 /* manifest.json */,
 				F691A5C22F4B003F0052C186 /* content-script.js */,
+				E01000000000000000000001 /* service-worker.js */,
+				E02000000000000000000002 /* runtime-messages.js */,
+				E02000000000000000000001 /* runtime-coordinator.js */,
 			);
 			name = Resources;
 			path = "Shared (Extension)";
@@ -422,6 +434,9 @@
 				F691A5C92F4B003F0052C186 /* popup in Resources */,
 				F691A5CA2F4B003F0052C186 /* store-assets in Resources */,
 				F691A5CE2F4B003F0052C186 /* content-script.js in Resources */,
+				E01000000000000000000002 /* service-worker.js in Resources */,
+				E03000000000000000000002 /* runtime-messages.js in Resources */,
+				E03000000000000000000001 /* runtime-coordinator.js in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -435,6 +450,9 @@
 				F691A5C32F4B003F0052C186 /* popup in Resources */,
 				F691A5C42F4B003F0052C186 /* store-assets in Resources */,
 				F691A5C82F4B003F0052C186 /* content-script.js in Resources */,
+				E01000000000000000000003 /* service-worker.js in Resources */,
+				E04000000000000000000002 /* runtime-messages.js in Resources */,
+				E04000000000000000000001 /* runtime-coordinator.js in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -799,6 +817,7 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "macOS (Extension)/Info.plist";
+				PROVISIONING_PROFILE_SPECIFIER = "$(SAFARI_EXTENSION_PROFILE)";
 				INFOPLIST_KEY_CFBundleDisplayName = "Emoji Revealer Extension";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -806,7 +825,7 @@
 					"@executable_path/../Frameworks",
 					"@executable_path/../../../../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MACOSX_DEPLOYMENT_TARGET = 12.0;
 				MARKETING_VERSION = 1.0;
 				OTHER_LDFLAGS = (
 					"-framework",
@@ -834,6 +853,7 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "macOS (Extension)/Info.plist";
+				PROVISIONING_PROFILE_SPECIFIER = "$(SAFARI_EXTENSION_PROFILE)";
 				INFOPLIST_KEY_CFBundleDisplayName = "Emoji Revealer Extension";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -841,7 +861,7 @@
 					"@executable_path/../Frameworks",
 					"@executable_path/../../../../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MACOSX_DEPLOYMENT_TARGET = 12.0;
 				MARKETING_VERSION = 1.0;
 				OTHER_LDFLAGS = (
 					"-framework",
@@ -872,6 +892,7 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "macOS (App)/Info.plist";
+				PROVISIONING_PROFILE_SPECIFIER = "$(SAFARI_APP_PROFILE)";
 				INFOPLIST_KEY_CFBundleDisplayName = "Emoji Revealer";
 				INFOPLIST_KEY_NSMainStoryboardFile = Main;
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
@@ -879,7 +900,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MACOSX_DEPLOYMENT_TARGET = 12.0;
 				MARKETING_VERSION = 1.0;
 				OTHER_LDFLAGS = (
 					"-framework",
@@ -913,6 +934,7 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "macOS (App)/Info.plist";
+				PROVISIONING_PROFILE_SPECIFIER = "$(SAFARI_APP_PROFILE)";
 				INFOPLIST_KEY_CFBundleDisplayName = "Emoji Revealer";
 				INFOPLIST_KEY_NSMainStoryboardFile = Main;
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
@@ -920,7 +942,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MACOSX_DEPLOYMENT_TARGET = 12.0;
 				MARKETING_VERSION = 1.0;
 				OTHER_LDFLAGS = (
 					"-framework",

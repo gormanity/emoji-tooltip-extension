@@ -69,17 +69,19 @@ understand what any emoji means.
 <details>
 <summary>Safari (macOS)</summary>
 
-Safari requires the extension to be bundled as a native app. Download the
-Safari release (`emoji-revealer-safari-*.zip`) from
-[GitHub Releases](https://github.com/gormanity/emoji-tooltip-extension/releases),
-then follow Apple's instructions for
-[enabling unsigned extensions](https://developer.apple.com/documentation/safariservices/safari-web-extensions/running-your-safari-web-extension#Enable-unsigned-extensions):
+Safari requires the extension to be bundled as a native app. The v0.3.5 Safari
+download is unsigned and has a packaging issue; use a later release explicitly
+marked as signed and notarized when available. For those releases, download
+`emoji-revealer-safari-*.zip` from
+[GitHub Releases](https://github.com/gormanity/emoji-tooltip-extension/releases):
 
 1. Unzip the downloaded file and move `Emoji Revealer.app` to your Applications folder
 2. Open `Emoji Revealer.app` once to register the extension with Safari
-3. In Safari, go to **Settings → Advanced** and enable **"Show features for web developers"**
-4. Go to **Settings → Developer** and enable **"Allow unsigned extensions"**
-5. Go to **Settings → Extensions**, find Emoji Revealer, and enable it
+3. Go to Safari **Settings → Extensions**, find Emoji Revealer, and enable it
+
+Signed releases do not require **Allow unsigned extensions**. See the
+[Safari build and signing guide](safari/README.md) for local builds and App Store
+package preparation.
 
 </details>
 
